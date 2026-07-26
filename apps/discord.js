@@ -28,8 +28,8 @@ window.AppDiscord = (function () {
           { id: "straygrandma",  name: "STRAY'S GRANDMA",  type: "text", topic: "",                avEmoji: "👵",                           color: "#5b6b7a", status: "offline", sub: "9 Members" },
           { id: "attention",     name: "Attention whore",  type: "text", topic: "",                avEmoji: "⚽",                           color: "#27ae60", status: "dnd",     sub: "I luv all the time" },
           { id: "halalgc",       name: "Halal gc",         type: "text", topic: "",                avEmoji: "🕌",                           color: "#e67e22", status: "offline", sub: "7 Members" },
-          { id: "hanaria",       name: "Hanaria",          type: "text", topic: "",                avEmoji: "🌸",                           color: "#f23f42", status: "online"  },
-          { id: "lells",         name: "Lells",            type: "text", topic: "",                avEmoji: "🐱",                           color: "#23a55a", status: "online"  },
+          { id: "hanaria",       name: "Hanaria",          type: "text", topic: "",                avEmoji: "🌸",  avImg: "static/hanaria.webp", color: "#f23f42", status: "online"  },
+          { id: "lells",         name: "Lells",            type: "text", topic: "",                avEmoji: "🐱",  avImg: "static/lells.webp",   color: "#23a55a", status: "online"  },
           { id: "mia",           name: "Mia",              type: "text", topic: "",                avEmoji: "✨",                            color: "#f0b232", status: "offline" }
         ]
       }
@@ -258,7 +258,7 @@ window.AppDiscord = (function () {
   function ensureSofiaDM() {
     var list = discordHome.channels[0].items;
     if (!list.find(function (x) { return x.id === "sofia"; })) {
-      list.push({ id: "sofia", name: "Sofia", type: "text", topic: "Direct message" });
+      list.push({ id: "sofia", name: "Sofia", type: "text", topic: "Direct message", avImg: "static/sofia.webp", color: "#9b59b6" });
     }
   }
 
