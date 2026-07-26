@@ -33,7 +33,6 @@
   ];
 
   /* ---------------- Tutorial steps ---------------- */
-  /* ---------------- Tutorial steps ---------------- */
   var STEPS = [
     {
       id: "place",
@@ -94,8 +93,8 @@
       ".canva-stage-element.selected { outline: 2px solid #7d2ae8; outline-offset: 2px; }",
       ".canva-stage-element.dragging { cursor: grabbing; }",
       ".canva-stage-element.text { font-weight: 700; color: #2a1a4d; background: rgba(255,255,255,.55); border-radius: 4px; padding: 4px 10px; min-width: 60px; min-height: 28px; white-space: pre-wrap; max-width: 80%; }",
-      ".canva-stage-element.image { width: 96px; height: 96px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.15); overflow: hidden; background: #f3f4f6; }",
-      ".canva-stage-element.image img { width: 100%; height: 100%; object-fit: cover; display: block; }",
+      ".canva-stage-element.image { line-height: 0; }",
+      ".canva-stage-element.image img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; user-select: none; }",
       ".canva-stage-element.fallback { display: grid; place-items: center; color: #fff; font-size: 38px; font-weight: 800; background-size: cover; }",
       ".canva-stage-element[contenteditable='true'] { cursor: text; outline: 2px solid #00c4cc; outline-offset: 2px; }",
 
@@ -435,7 +434,8 @@
         e.stopPropagation();
         state.bg = sw.dataset.bg;
         state.bgChosen = true;
-        pageEl.style.background = state.bg;
+        /* Only change background-color — keep the wallpaper background-image intact */
+        pageEl.style.backgroundColor = state.bg;
         root.querySelectorAll("#canvaBgGrid .canva-swatch").forEach(function (s) { s.classList.remove("selected"); });
         sw.classList.add("selected");
         /* Background changes are visual-only — no step advancement needed */
@@ -505,15 +505,17 @@
     el.contentEditable = "false";
     el.spellcheck = false;
     el.textContent = text;
-    el.style.left = "32%";
-    el.style.top  = "30%";
-    el.style.fontSize = "30px";
-    el.style.color = "#2a1a4d";
+    el.style.left = "50%";
+    el.style.top  = "8%";
+    el.style.transform = "translateX(-50%)";
+    el.style.fontSize = "28px";
+    el.style.color = "#ffd700";
+    el.style.textShadow = "0 2px 8px rgba(0,0,0,.7), 0 0 2px rgba(0,0,0,.9)";
     el.style.zIndex = String(++zCounter);
     pageEl.appendChild(el);
     hideEmpty(pageEl);
 
-    var data = { id: el.id, type: "text", text: text, x: 32, y: 30, fontSize: 30, color: "#2a1a4d", moved: false };
+    var data = { id: el.id, type: "text", text: text, x: 50, y: 8, fontSize: 28, color: "#ffd700", moved: false };
     state.elements.push(data);
 
     el.addEventListener("input", function () { data.text = el.textContent; });
@@ -523,7 +525,13 @@
       el.focus();
       selectAllText(el);
     });
-    el.addEventListener("blur", function () { el.contentEditable = "false"; });
+    el.addEventListener("blur", function () {
+      el.contentEditable = "false";
+      /* Advance from title step to save step when user finishes editing */
+      if (!state.completed && state.step < STEPS.length && STEPS[state.step].id === "title") {
+        advanceStep(root);
+      }
+    });
     el.addEventListener("click", function (e) {
       e.stopPropagation();
       selectElement(root, data);
@@ -539,7 +547,7 @@
     el.id = uid();
     el.dataset.type = "image";
     el.style.width  = (asset.wPct || 10) + "%";
-    el.style.height = (asset.wPct || 10) + "%";
+    el.style.height = (asset.hPct || asset.wPct || 10) + "%";
     if (asset.src) {
       var imgHtml = '<img src="' + asset.src + '" alt="' + escapeHTML(asset.name) + '" style="width:100%;height:100%;object-fit:contain;display:block;" />';
       el.innerHTML = imgHtml;
@@ -608,6 +616,8 @@
       e.stopPropagation();
       el.classList.add("dragging");
       selectElement(root, data);
+      /* Bring to front while dragging */
+      el.style.zIndex = String(++zCounter);
 
       var pageEl = root.querySelector("#canvaPage");
       var pageRect = pageEl.getBoundingClientRect();
@@ -631,9 +641,7 @@
         document.removeEventListener("pointermove", move);
         document.removeEventListener("pointerup", cleanup);
         document.removeEventListener("pointercancel", cleanup);
-        if (STEPS[state.step].id === "drag" && state.elements.some(function (d) { return d.moved; })) {
-          advanceStep(root);
-        }
+        /* No 'drag' step anymore — placed elements can be repositioned freely */
       }
       document.addEventListener("pointermove", move);
       document.addEventListener("pointerup", cleanup);
