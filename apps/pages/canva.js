@@ -13,12 +13,25 @@
 (function () {
   if (!window.AppBrowser) { console.warn("[canva.js] AppBrowser not loaded"); return; }
 
-  /* ---------------- Friends available for the picker ---------------- */
-  var FRIENDS = [
-    { id: "hanaria", name: "Hanaria", src: "static/hanaria.webp", color: "#f23f42", emoji: "🌸" },
-    { id: "sofia",   name: "Sofia",   src: "static/sofia.webp",   color: "#9b59b6", emoji: "✧"  },
-    { id: "lells",   name: "Lells",   src: "static/lells.webp",   color: "#23a55a", emoji: "🐱" },
-    { id: "mia",     name: "Mia",     src: null,                   color: "#fbbf24", emoji: "✨" }
+  /* ---------------- Canva assets (scraped from the real birthday design) ---------------- */
+  /* Positions derived from canva-layout-*.json, mapped to % of 1536x395 viewport. */
+  var CANVA_ASSETS = [
+    { id: "canva-001", name: "Gold Confetti Wallpaper", src: "static/canva-001.jpg", color: "#d4a574", emoji: "✨",
+      xPct: 46.3, yPct: 38.1, wPct: 12.1, hPct: 32.8, z: 1 },
+    { id: "canva-002", name: "Golden Stars Frame",      src: "static/canva-002.png", color: "#daa520", emoji: "⭐",
+      xPct: 45.3, yPct: 43.8, wPct: 7.5,  hPct: 29.0, z: 4 },
+    { id: "canva-003", name: "Golden Stars Frame",      src: "static/canva-003.png", color: "#daa520", emoji: "⭐",
+      xPct: 52.5, yPct: 42.6, wPct: 7.9,  hPct: 30.9, z: 5 },
+    { id: "canva-004", name: "Golden Square Frame",     src: "static/canva-004.webp", color: "#c9a96e", emoji: "□",
+      xPct: 47.8, yPct: 42.0, wPct: 9.0,  hPct: 25.1, z: 3 },
+    { id: "canva-005", name: "Gold Glitter Balloons",   src: "static/canva-005.webp", color: "#d4af37", emoji: "🎈",
+      xPct: 46.0, yPct: 38.6, wPct: 3.2,  hPct: 35.1, z: 8 },
+    { id: "canva-006", name: "Gold Glitter Balloons",   src: "static/canva-006.webp", color: "#d4af37", emoji: "🎈",
+      xPct: 55.6, yPct: 44.3, wPct: 3.2,  hPct: 35.1, z: 9 },
+    { id: "canva-007", name: "Gold Overlay",            src: "static/canva-007.png", color: "#b8860b", emoji: "🌟",
+      xPct: 52.5, yPct: 58.1, wPct: 3.1,  hPct: 17.5, z: 6 },
+    { id: "canva-008", name: "Gold Deco",               src: "static/canva-008.png", color: "#ffd700", emoji: "✧",
+      xPct: 49.1, yPct: 57.7, wPct: 2.5,  hPct: 12.2, z: 7 }
   ];
 
   /* ---------------- Tutorial steps ---------------- */
@@ -36,7 +49,7 @@
     {
       id: "photo",
       selector: "[data-canva-act='addimage']",
-      tip: "Click '🖼 Add Image' and pick a friend to drop them onto the card."
+      tip: "Click '🖼 Add Image' and pick a gold element to add to the card."
     },
     {
       id: "drag",
@@ -178,7 +191,7 @@
       '      <div class="canva-section">',
       '        <h4>Background</h4>',
       '        <div class="canva-grid" id="canvaBgGrid">',
-      '          <div class="canva-swatch" data-bg="#ffffff" style="background:#ffffff;border:1px solid #ddd"></div>',
+      '          <div class="canva-swatch selected" data-bg="#0a0a0f" style="background:#0a0a0f"></div>',
       '          <div class="canva-swatch" data-bg="#fff5f7" style="background:#fff5f7"></div>',
       '          <div class="canva-swatch" data-bg="#fef3c7" style="background:#fef3c7"></div>',
       '          <div class="canva-swatch" data-bg="#fce7f3" style="background:#fce7f3"></div>',
@@ -229,7 +242,7 @@
   /* ---------------- Main render ---------------- */
   function render(contentEl, url, title) {
     contentEl.innerHTML = canvaStyle() + bodyHTML();
-    state = { bg: "#ffffff", bgChosen: false, elements: [], step: 0, completed: false };
+    state = { bg: "#0a0a0f", bgChosen: false, elements: [], step: 0, completed: false };
     zCounter = 10;
     setupInteractions(contentEl);
     showStep(contentEl, 0);
@@ -237,6 +250,49 @@
     if (window.AppCommon && typeof window.AppCommon.emit === "function") {
       window.AppCommon.emit("walkthrough:browser-opened", { url: "canva.com" });
     }
+    /* Pre-populate all 8 gold-themed assets positioned from the real Canva design. */
+    placeDefaultLayout(contentEl);
+  }
+
+  /* Places all CANVA_ASSETS onto the canvas at JSON-derived % positions. */
+  function placeDefaultLayout(root) {
+    var pageEl = root.querySelector("#canvaPage");
+    if (!pageEl) return;
+    CANVA_ASSETS.forEach(function (a, idx) {
+      var el = document.createElement("div");
+      el.className = "canva-stage-element image";
+      el.id = "gold-" + idx;
+      el.dataset.type = "image";
+      el.dataset.assetId = a.id;
+      el.style.left   = a.xPct + "%";
+      el.style.top    = a.yPct + "%";
+      el.style.width  = a.wPct + "%";
+      el.style.height = a.hPct + "%";
+      el.style.zIndex = String(a.z);
+      el.style.mixBlendMode = "normal";
+      var img = document.createElement("img");
+      img.src = a.src;
+      img.alt = a.name;
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.objectFit = "contain";
+      img.style.display = "block";
+      el.appendChild(img);
+      pageEl.appendChild(el);
+      hideEmpty(pageEl);
+
+      var data = { id: el.id, type: "image", asset: a, x: a.xPct, y: a.yPct, w: a.wPct, h: a.hPct, moved: false };
+      state.elements.push(data);
+
+      el.addEventListener("click", function (e) { e.stopPropagation(); selectElement(root, data); });
+      makeDraggable(root, el, data);
+    });
+    /* After pre-loading all assets, mark background as chosen so step 1 completes. */
+    state.bgChosen = true;
+    pageEl.style.background = state.bg;
+    root.querySelectorAll("#canvaBgGrid .canva-swatch").forEach(function (s) {
+      s.classList.toggle("selected", s.dataset.bg === state.bg);
+    });
   }
 
   /* ---------------- Wiring ---------------- */
@@ -269,7 +325,7 @@
     var addTextBtn = root.querySelector('[data-canva-act="addtext"]');
     if (addTextBtn) addTextBtn.addEventListener("click", function (e) {
       e.stopPropagation();
-      addTextElement(root, "Happy Birthday, Stray! 🎂");
+      addTextElement(root, "Happy Birthday, Stray! ✨");
       if (STEPS[state.step].id === "title") advanceStep(root);
     });
 
@@ -355,26 +411,29 @@
     selectElement(root, data);
   }
 
-  function addImageElement(root, friend) {
+  function addImageElement(root, asset) {
     var pageEl = root.querySelector("#canvaPage");
     var el = document.createElement("div");
     el.className = "canva-stage-element image";
     el.id = uid();
     el.dataset.type = "image";
-    if (friend.src) {
-      el.innerHTML = '<img src="' + friend.src + '" alt="' + escapeHTML(friend.name) + '" />';
+    el.style.width  = (asset.wPct || 10) + "%";
+    el.style.height = (asset.wPct || 10) + "%";
+    if (asset.src) {
+      var imgHtml = '<img src="' + asset.src + '" alt="' + escapeHTML(asset.name) + '" style="width:100%;height:100%;object-fit:contain;display:block;" />';
+      el.innerHTML = imgHtml;
     } else {
       el.classList.add("fallback");
-      el.style.background = "linear-gradient(135deg, " + friend.color + ", #ec4899)";
-      el.textContent = friend.emoji || "✨";
+      el.style.background = "linear-gradient(135deg, " + asset.color + ", #ec4899)";
+      el.textContent = asset.emoji || "✨";
     }
-    el.style.left = "55%";
-    el.style.top  = "60%";
+    el.style.left = (asset.xPct || 50) + "%";
+    el.style.top  = (asset.yPct || 50) + "%";
     el.style.zIndex = String(++zCounter);
     pageEl.appendChild(el);
     hideEmpty(pageEl);
 
-    var data = { id: el.id, type: "image", friend: friend, x: 55, y: 60, moved: false };
+    var data = { id: el.id, type: "image", asset: asset, x: asset.xPct || 50, y: asset.yPct || 50, moved: false };
     state.elements.push(data);
 
     el.addEventListener("click", function (e) { e.stopPropagation(); selectElement(root, data); });
@@ -407,7 +466,7 @@
       section.style.display = "block";
       info.textContent = data.type === "text"
         ? "Text — " + (data.text || "").slice(0, 40)
-        : "Image — " + (data.friend ? data.friend.name : "—");
+        : "Image — " + (data.asset ? data.asset.name : "—");
     }
   }
 
@@ -479,18 +538,18 @@
 
     var html = [
       '<div class="canva-modal">',
-      '  <h3>Pick a friend to add</h3>',
+      '  <h3>Pick a gold element to add</h3>',
       '  <div class="picker-grid">'
     ];
-    FRIENDS.forEach(function (f) {
-      var avatarInner = f.src
-        ? '<img src="' + f.src + '" alt="' + escapeHTML(f.name) + '" />'
-        : escapeHTML(f.emoji || "✨");
-      var avatarStyle = f.src ? "" : ' style="background:linear-gradient(135deg,' + f.color + ',#ec4899)"';
+    CANVA_ASSETS.forEach(function (a) {
+      var avatarInner = a.src
+        ? '<img src="' + a.src + '" alt="' + escapeHTML(a.name) + '" style="width:100%;height:100%;object-fit:cover;" />'
+        : escapeHTML(a.emoji || "✨");
+      var avatarStyle = a.src ? "" : ' style="background:linear-gradient(135deg,' + a.color + ',#ec4899)"';
       html.push(
-        '<div class="picker-tile" data-friend="' + f.id + '">' +
+        '<div class="picker-tile" data-asset-id="' + a.id + '">' +
           '<div class="picker-avatar"' + avatarStyle + '>' + avatarInner + '</div>' +
-          '<div class="picker-name">' + escapeHTML(f.name) + '</div>' +
+          '<div class="picker-name">' + escapeHTML(a.name) + '</div>' +
         '</div>'
       );
     });
@@ -505,10 +564,10 @@
       }
       var tile = e.target.closest("[data-friend]");
       if (tile) {
-        var friend = FRIENDS.find(function (f) { return f.id === tile.dataset.friend; });
+        var asset = CANVA_ASSETS.find(function (a) { return a.id === tile.dataset.assetId; });
         mask.remove();
-        if (friend) {
-          addImageElement(root, friend);
+        if (asset) {
+          addImageElement(root, asset);
           if (STEPS[state.step].id === "photo") advanceStep(root);
         }
       }
@@ -585,7 +644,7 @@
     var map = {
       "background": "Pick a background",
       "title":      "Add a title",
-      "photo":      "Add a friend photo",
+      "photo":      "Add a gold element",
       "drag":       "Move things around",
       "save":       "Save your gift"
     };
@@ -703,13 +762,13 @@
       }
 
       function drawImageEl(el) {
-        var fr = el.friend;
-        if (!fr || !fr.src) return;
+        var a = el.asset;
+        if (!a || !a.src) return;
         var img = new Image();
         img.crossOrigin = "anonymous";
         img.onload = function () {
-          var w = 96 * (W / 100);
-          var h = w;
+          var w = (el.w || a.wPct || 12) * (W / 100);
+          var h = (el.h || a.wPct || 12) * (W / 100);
           var x = (el.x / 100) * W;
           var y = (el.y / 100) * H;
           var r = 12;
@@ -731,26 +790,26 @@
           if (pending <= 0) finish();
         };
         img.onerror = function () {
-          var w = 96 * (W / 100);
+          var w = (el.w || a.wPct || 12) * (W / 100);
           var x = (el.x / 100) * W;
           var y = (el.y / 100) * H;
-          cx.fillStyle = fr.color || "#ccc";
+          cx.fillStyle = a.color || "#ccc";
           cx.fillRect(x, y, w, w);
           cx.fillStyle = "#fff";
           cx.font = "bold 28px sans-serif";
           cx.textAlign = "center";
           cx.textBaseline = "middle";
-          cx.fillText(fr.emoji || "✧", x + w / 2, y + w / 2);
+          cx.fillText(a.emoji || "✧", x + w / 2, y + w / 2);
           cx.textAlign = "start";
           pending--;
           if (pending <= 0) finish();
         };
-        img.src = fr.src;
+        img.src = a.src;
       }
 
       /* Count image elements that need loading */
       for (var i = 0; i < elems.length; i++) {
-        if (elems[i].type === "image" && elems[i].friend && elems[i].friend.src) pending++;
+        if (elems[i].type === "image" && elems[i].asset && elems[i].asset.src) pending++;
       }
 
       /* Draw text immediately, queue images */
