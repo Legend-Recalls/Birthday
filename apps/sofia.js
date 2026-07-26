@@ -92,7 +92,7 @@ window.AppSofia = (function () {
     var sendBtn = ctx.getSendBtn();
 
     ctx.pushMessage({
-      author: "Stray", color: "#5865f2", avEmoji: "smirk",
+      author: "Stray", color: "#5865f2", avEmoji: "smirk", avImg: "static/stray.webp",
       time: ctx.timeNow(), text: item.user
     }, "stray");
     if (input) input.value = "";
@@ -107,7 +107,7 @@ window.AppSofia = (function () {
       if (item.sofia) {
         ctx.pushMessage({
           author: "star Sofia star", color: "#80848e",
-          time: ctx.timeNow(), text: item.sofia, avatar: "static/sofia.webp"
+          time: ctx.timeNow(), text: item.sofia, avImg: "static/sofia.webp"
         }, "sofia");
         ctx.refreshSofia();
       }
@@ -126,7 +126,7 @@ window.AppSofia = (function () {
     var text = input.value.trim();
     if (!text) return;
     ctx.pushMessage({
-      author: "Stray", color: "#5865f2", avEmoji: "smirk",
+      author: "Stray", color: "#5865f2", avEmoji: "smirk", avImg: "static/stray.webp",
       time: ctx.timeNow(), text: text
     }, "stray");
     input.value = "";

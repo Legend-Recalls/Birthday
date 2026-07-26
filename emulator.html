@@ -1373,6 +1373,30 @@
       pointer-events: auto;
     }
 
+    /* Close button on notifications */
+    .n-close {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 20px;
+      height: 20px;
+      border: 0;
+      background: rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.7);
+      border-radius: 50%;
+      font-size: 10px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      opacity: 0;
+      transition: opacity .15s ease, background .15s ease;
+      z-index: 2;
+      padding: 0;
+      line-height: 1;
+    }
+    .notification:hover .n-close { opacity: 1; }
+    .n-close:hover { background: rgba(255,255,255,0.25); color: #fff; }
+
     .notification-icon {
       width: 36px;
       height: 36px;
@@ -1405,7 +1429,11 @@
       margin: 2px 0;
     }
 
-    /* Hint notification: positioned below the birthday/dm notifications */
+    /* Notification stacking: birthday at top, DM below, hint further below */
+    .notification.notification-dm {
+      top: 100px;
+    }
+
     .notification.notification-hint {
       top: 168px;
       background: rgba(34, 36, 44, 0.96);
@@ -1651,7 +1679,7 @@
           </div>
         </div>
 
-        <div class="notification" id="birthdayNotification" role="button" tabindex="0" aria-label="Open Discord message">
+        <div class="notification notification-birthday" id="birthdayNotification" role="button" tabindex="0" aria-label="Open Discord message">
           <div class="notification-icon"><img src="static/hanaria.webp" alt="Hanaria" /></div>
           <div class="notification-content">
             <div class="notification-title">Discord</div>
@@ -1660,15 +1688,17 @@
               HAPPY BIRTHDAY STRAY! WE ARE SO SORRY WE FORGOT TO GIVE U A GIFT.
             </div>
           </div>
+          <button class="n-close" data-n-close="birthday" title="Dismiss">✕</button>
         </div>
 
-        <div class="notification" id="dmNotification" role="button" tabindex="0" aria-label="Open message from Sofia">
-          <div class="notification-icon" style="background:#9b59b6">S</div>
+        <div class="notification notification-dm" id="dmNotification" role="button" tabindex="0" aria-label="Open message from Sofia">
+          <div class="notification-icon" style="background:#9b59b6;overflow:hidden"><img src="static/sofia.webp" alt="Sofia" /></div>
           <div class="notification-content">
             <div class="notification-title">Sofia</div>
             <div class="notification-subtitle">Direct Message</div>
             <div class="notification-text">HELP</div>
           </div>
+          <button class="n-close" data-n-close="dm" title="Dismiss">✕</button>
         </div>
 
         <div class="notification notification-hint" id="hintNotification" role="button" tabindex="0" aria-label="Hint">
@@ -1678,6 +1708,7 @@
             <div class="notification-subtitle h-sub"></div>
             <div class="notification-text h-text"></div>
           </div>
+          <button class="n-close" data-n-close="hint" title="Dismiss">✕</button>
         </div>
 
         <div class="toast" id="toast"></div>

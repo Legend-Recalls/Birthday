@@ -29,12 +29,12 @@ window.AppDiscordPanic = (function () {
     setTimeout(function () { icon.classList.remove("bounce"); }, 2300);
   }
 
+  /* showDMNotification now lives in bootstrap.js with auto-dismiss.
+   * Call the bootstrap version via window if available. */
   function showDMNotification() {
-    var n = document.getElementById("dmNotification");
-    if (!n) return;
-    n.classList.remove("show");
-    void n.offsetWidth;
-    n.classList.add("show");
+    if (typeof window.showDMNotification === "function") {
+      window.showDMNotification();
+    }
   }
 
   function ensureSofiaDM() {
@@ -65,7 +65,7 @@ window.AppDiscordPanic = (function () {
             color: "#80848e",
             time: "Today at 12:05 AM",
             text: "HELP",
-            avatar: "static/sofia.webp"
+            avImg: "static/sofia.webp"
           });
 
           var win = document.getElementById("discord-window");

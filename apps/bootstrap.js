@@ -236,6 +236,21 @@
     }
   });
 
+  /* ---------------- Notification auto-dismiss timers ---------------- */
+  var birthdayAutoTimer = null;
+  var dmAutoTimer = null;
+
+  /* Close button handler (shared for all notifications). */
+  document.querySelectorAll(".n-close").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var target = btn.dataset.nClose;
+      if (target === "birthday") hideBirthdayNotification();
+      else if (target === "dm") hideDMNotification();
+      else if (target === "hint") cancelHint();
+    });
+  });
+
   /* ---------------- Birthday notification ---------------- */
   var birthdayRuleUnread = true;
   function showBirthdayNotification() {
@@ -246,8 +261,12 @@
     var badge = document.getElementById("discordDockBadge");
     if (badge) badge.classList.remove("hidden");
     if (window.AppDiscordPanic) window.AppDiscordPanic.bounceDock();
+    /* Auto-dismiss after 8 seconds. */
+    if (birthdayAutoTimer) clearTimeout(birthdayAutoTimer);
+    birthdayAutoTimer = setTimeout(hideBirthdayNotification, 8000);
   }
   function hideBirthdayNotification() {
+    if (birthdayAutoTimer) { clearTimeout(birthdayAutoTimer); birthdayAutoTimer = null; }
     var notification = document.getElementById("birthdayNotification");
     if (notification) notification.classList.remove("show");
   }
@@ -261,21 +280,41 @@
   }
   var birthdayNotification = document.getElementById("birthdayNotification");
   if (birthdayNotification) {
-    birthdayNotification.addEventListener("click", openBirthdayDiscord);
+    birthdayNotification.addEventListener("click", function (e) {
+      if (e.target.closest(".n-close")) return;
+      openBirthdayDiscord();
+    });
     birthdayNotification.addEventListener("keydown", function (e) {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openBirthdayDiscord(); }
     });
   }
 
+  /* ---------------- DM notification ---------------- */
+  function showDMNotification() {
+    var n = document.getElementById("dmNotification");
+    if (!n) return;
+    n.classList.add("show");
+    /* Auto-dismiss after 6 seconds. */
+    if (dmAutoTimer) clearTimeout(dmAutoTimer);
+    dmAutoTimer = setTimeout(hideDMNotification, 6000);
+  }
+  function hideDMNotification() {
+    if (dmAutoTimer) { clearTimeout(dmAutoTimer); dmAutoTimer = null; }
+    var n = document.getElementById("dmNotification");
+    if (n) n.classList.remove("show");
+  }
+  function openSofiaDM() {
+    hideDMNotification();
+    openApp("discord");
+    var w = document.getElementById("discord-window");
+    if (w && w.appDiscord && w.appDiscord.openDM) w.appDiscord.openDM("sofia");
+  }
   var dmNotification = document.getElementById("dmNotification");
   if (dmNotification) {
-    var openSofiaDM = function () {
-      dmNotification.classList.remove("show");
-      openApp("discord");
-      var w = document.getElementById("discord-window");
-      if (w && w.appDiscord && w.appDiscord.openDM) w.appDiscord.openDM("sofia");
-    };
-    dmNotification.addEventListener("click", openSofiaDM);
+    dmNotification.addEventListener("click", function (e) {
+      if (e.target.closest(".n-close")) return;
+      openSofiaDM();
+    });
     dmNotification.addEventListener("keydown", function (e) {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSofiaDM(); }
     });
@@ -437,13 +476,15 @@
   }
 
   /* Expose globals for the apps to call into. */
-  window.trafficLightsHTML  = trafficLightsHTML;
-  window.focusWindow        = focusWindow;
-  window.makeDraggable      = makeDraggable;
-  window.setupWindowControls= setupWindowControls;
-  window.setMenuBar         = setMenuBar;
-  window.updateDock         = updateDock;
-  window.openApp            = openApp;
-  window.cap                = cap;
-  window.initials           = initials;
+  window.trafficLightsHTML   = trafficLightsHTML;
+  window.focusWindow         = focusWindow;
+  window.makeDraggable       = makeDraggable;
+  window.setupWindowControls = setupWindowControls;
+  window.setMenuBar          = setMenuBar;
+  window.updateDock          = updateDock;
+  window.openApp             = openApp;
+  window.cap                 = cap;
+  window.initials            = initials;
+  window.showDMNotification  = showDMNotification;
+  window.hideDMNotification  = hideDMNotification;
 })();
