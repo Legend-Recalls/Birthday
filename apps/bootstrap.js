@@ -389,7 +389,7 @@
     file.innerHTML =
       '<div class="file-pulse"></div>' +
       '<div class="desktop-file-thumb">' + thumbHTML + '</div>' +
-      '<div class="desktop-file-label">Stray's Gift.png</div>';
+      '<div class="desktop-file-label">Stray\'s Gift.png</div>';
 
     /* Position: center-right of desktop, above dock */
     var dRect = desktop.getBoundingClientRect();
