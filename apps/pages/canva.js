@@ -1,7 +1,7 @@
 /* apps/pages/canva.js — Guided interactive Canva-style editor.
  * Walks Stray through making his own birthday gift in 3 tutorial steps:
- *   1. Edit the pre-placed title
- *   2. Drag gold elements to rearrange
+ *   1. Drag 7 gold elements onto the card— they snap into place
+ *   2. Edit the title text
  *   3. Save & finish
  * On save, fires `walkthrough:gift-complete` (window event + AppCommon bus).
  * Registered with AppBrowser via the canva.com URL matcher.
@@ -33,16 +33,17 @@
   ];
 
   /* ---------------- Tutorial steps ---------------- */
+  /* ---------------- Tutorial steps ---------------- */
   var STEPS = [
+    {
+      id: "place",
+      selector: ".canva-tray-item",
+      tip: "Drag the gold element from the sidebar onto your gift card!"
+    },
     {
       id: "title",
       selector: ".canva-stage-element.text",
       tip: "Double-click the title to edit it. Make it say whatever you want!"
-    },
-    {
-      id: "drag",
-      selector: ".canva-stage-element",
-      tip: "Click and drag any gold element to rearrange the design."
     },
     {
       id: "save",
@@ -139,6 +140,28 @@
       ".canva-coach-card .step-pill { display: inline-block; background: #f1eaff; color: #5a18b6; font-size: 10px; padding: 2px 8px; border-radius: 8px; font-weight: 800; margin-bottom: 6px; letter-spacing: .04em; }",
       ".canva-coach-card h4 { margin: 0 0 6px; font-size: 13px; color: #7d2ae8; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }",
       ".canva-coach-card p { margin: 0; font-size: 13px; color: #333; line-height: 1.45; }",
+      /* Drag ghost */
+      ".canva-ghost { position: fixed; pointer-events: none; z-index: 10000; opacity: 0.85; filter: drop-shadow(0 8px 24px rgba(0,0,0,.35)); transform: translate(-50%, -50%); transition: none; }",
+      ".canva-ghost img { display: block; max-width: 120px; max-height: 120px; object-fit: contain; }",
+
+      /* Snap animation */
+      ".canva-stage-element.snapping { transition: left 0.35s cubic-bezier(.34,1.56,.64,1), top 0.35s cubic-bezier(.34,1.56,.64,1); }",
+
+      /* Placed badge */
+      ".canva-placed-badge { position: absolute; pointer-events: none; z-index: 80; font-size: 13px; font-weight: 700; color: #7d2ae8; background: #fff; padding: 4px 12px; border-radius: 20px; box-shadow: 0 4px 16px rgba(125,42,232,.3); animation: badgePop 0.8s ease-out forwards; }",
+      "@keyframes badgePop { 0% { opacity:0; transform: scale(.5) translateY(6px); } 30% { opacity:1; transform: scale(1.15) translateY(-4px); } 60% { transform: scale(1) translateY(-8px); } 100% { opacity:0; transform: scale(.9) translateY(-20px); } }",
+
+      /* Asset tray */
+      ".canva-tray { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px 8px; width: 100%; }",
+      ".canva-tray-counter { font-size: 10px; font-weight: 800; color: #888; text-transform: uppercase; letter-spacing: .08em; }",
+      ".canva-tray-item { width: 56px; height: 56px; border-radius: 12px; background: #fafafa; border: 2px dashed #d0d0d0; display: grid; place-items: center; cursor: grab; transition: all .2s ease; user-select: none; overflow: hidden; }",
+      ".canva-tray-item:hover { border-color: #7d2ae8; transform: scale(1.08); box-shadow: 0 6px 20px rgba(125,42,232,.25); }",
+      ".canva-tray-item:active { cursor: grabbing; transform: scale(.95); }",
+      ".canva-tray-item.pulse { animation: trayPulse 1.2s ease-in-out infinite; border-color: #7d2ae8; }",
+      "@keyframes trayPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(125,42,232,.4); } 50% { box-shadow: 0 0 0 10px rgba(125,42,232,0); } }",
+      ".canva-tray-item img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }",
+      ".canva-tray-label { font-size: 10px; color: #555; text-align: center; max-width: 70px; line-height: 1.3; font-weight: 600; }",
+      ".canva-tray-done { font-size: 13px; color: #15803d; font-weight: 800; padding: 8px; text-align: center; }",
       "</style>"
     ].join("");
   }
@@ -157,18 +180,17 @@
       '  </div>',
       '  <div class="canva-stepbar" id="canvaStepbar">',
       '    <span class="step-num" id="canvaStepNum">1 / 3</span>',
-      '    <span class="step-tip" id="canvaStepTip">Double-click the title to edit it!</span>',
+      '    <span class="step-tip" id="canvaStepTip">Drag the gold element onto your gift card!</span>',
       '  </div>',
       '  <div class="canva-main">',
-      '    <div class="canva-sidebar">',
-      '      <button class="active" data-tab="design"><div class="ico">🧩</div>Design</button>',
-      '      <button data-tab="elements"><div class="ico">⭐</div>Elements</button>',
-      '      <button data-tab="uploads"><div class="ico">📁</div>Uploads</button>',
-      '      <button data-tab="text"><div class="ico">🅰</div>Text</button>',
-      '      <button data-tab="projects"><div class="ico">📂</div>Projects</button>',
-      '      <button data-tab="audio"><div class="ico">🎵</div>Audio</button>',
-      '      <button data-tab="video"><div class="ico">🎬</div>Video</button>',
-      '      <button data-tab="more"><div class="ico">⋯</div>More</button>',
+      '        <div class="canva-sidebar">',
+      '      <div class="canva-tray" id="canvaTray">',
+      '        <div class="canva-tray-counter">Item 1 of 7</div>',
+      '        <div class="canva-tray-item pulse">',
+      '          <img src="static/canva-002.png" alt="Drag me" draggable="false" />',
+      '        </div>',
+      '        <div class="canva-tray-label">Golden Stars Frame</div>',
+      '      </div>',
       '    </div>',
       '    <div class="canva-canvas" id="canvaCanvas">',
       '      <div class="canva-page" id="canvaPage">',
@@ -230,7 +252,7 @@
   /* ---------------- Main render ---------------- */
   function render(contentEl, url, title) {
     contentEl.innerHTML = canvaStyle() + bodyHTML();
-    state = { bg: "#0a0a0f", bgChosen: false, elements: [], step: 0, completed: false };
+    state = { bg: "#0a0a0f", bgChosen: false, elements: [], step: 0, completed: false, placeIndex: 1 };
     zCounter = 10;
     setupInteractions(contentEl);
     showStep(contentEl, 0);
@@ -238,75 +260,174 @@
     if (window.AppCommon && typeof window.AppCommon.emit === "function") {
       window.AppCommon.emit("walkthrough:browser-opened", { url: "canva.com" });
     }
-    /* Pre-populate all 8 gold-themed assets positioned from the real Canva design. */
-    placeDefaultLayout(contentEl);
+    /* Apply confetti wallpaper background immediately. */
+    var pageEl = contentEl.querySelector("#canvaPage");
+    if (pageEl) {
+      pageEl.style.backgroundImage = "url(static/canva-001.jpg)";
+      pageEl.style.backgroundSize = "cover";
+      pageEl.style.backgroundPosition = "center";
+      pageEl.style.backgroundColor = "#0a0a0f";
+      state.bgChosen = true;
+    }
+    /* Render the first draggable asset in the tray. */
+    renderTray(contentEl);
   }
 
-  /* Places all CANVA_ASSETS onto the canvas with proper spread layout.
-   * canva-001 (confetti) -> page background image; all others -> draggable elements. */
-  function placeDefaultLayout(root) {
+  /* ---------------- Asset Tray & Drag System ---------------- */
+
+  /* Render the sidebar tray showing the current asset to drag. */
+  function renderTray(root) {
+    var tray = root.querySelector("#canvaTray");
+    if (!tray) return;
+    var idx = state.placeIndex;
+    if (idx >= CANVA_ASSETS.length) {
+      tray.innerHTML = '<div class="canva-tray-done">✅ All done!<br><span style="font-size:10px;color:#888">Edit the title next</span></div>';
+      return;
+    }
+    var a = CANVA_ASSETS[idx];
+    tray.innerHTML =
+      '<div class="canva-tray-counter">Item ' + idx + ' of ' + (CANVA_ASSETS.length - 1) + '</div>' +
+      '<div class="canva-tray-item pulse" data-canva-drag="' + idx + '">' +
+        '<img src="' + a.src + '" alt="' + escapeHTML(a.name) + '" draggable="false" />' +
+      '</div>' +
+      '<div class="canva-tray-label">' + escapeHTML(a.name) + '</div>';
+
+    var item = tray.querySelector(".canva-tray-item");
+    if (item) {
+      item.addEventListener("pointerdown", function (e) {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        startTrayDrag(root, a, e);
+      });
+    }
+  }
+
+  var dragGhost = null;
+  var dragAsset = null;
+  var dragRoot = null;
+
+  function startTrayDrag(root, asset, e) {
+    dragRoot = root;
+    dragAsset = asset;
+    var ghost = document.createElement("div");
+    ghost.className = "canva-ghost";
+    ghost.innerHTML = '<img src="' + asset.src + '" alt="" draggable="false" />';
+    ghost.style.left = e.clientX + "px";
+    ghost.style.top  = e.clientY + "px";
+    document.body.appendChild(ghost);
+    dragGhost = ghost;
+    document.addEventListener("pointermove", onDragMove);
+    document.addEventListener("pointerup", onDragUp);
+    document.addEventListener("pointercancel", onDragUp);
+  }
+
+  function onDragMove(e) {
+    if (!dragGhost) return;
+    dragGhost.style.left = e.clientX + "px";
+    dragGhost.style.top  = e.clientY + "px";
+  }
+
+  function onDragUp(e) {
+    document.removeEventListener("pointermove", onDragMove);
+    document.removeEventListener("pointerup", onDragUp);
+    document.removeEventListener("pointercancel", onDragUp);
+    if (!dragGhost || !dragAsset || !dragRoot) return;
+    var pageEl = dragRoot.querySelector("#canvaPage");
+    if (!pageEl) { cleanupDrag(); return; }
+    var pageRect = pageEl.getBoundingClientRect();
+    var inside = e.clientX >= pageRect.left && e.clientX <= pageRect.right &&
+                 e.clientY >= pageRect.top  && e.clientY <= pageRect.bottom;
+    if (inside) {
+      dropAndSnapToStage(dragRoot, dragAsset, e.clientX, e.clientY, pageRect);
+    }
+    cleanupDrag();
+  }
+
+  function cleanupDrag() {
+    if (dragGhost) { dragGhost.remove(); dragGhost = null; }
+    dragAsset = null;
+    dragRoot = null;
+  }
+
+  function dropAndSnapToStage(root, asset, cx, cy, pageRect) {
     var pageEl = root.querySelector("#canvaPage");
     if (!pageEl) return;
-    CANVA_ASSETS.forEach(function (a, idx) {
-      if (a.isBg) {
-        /* Use confetti wallpaper as the page background */
-        pageEl.style.backgroundImage = "url(" + a.src + ")";
-        pageEl.style.backgroundSize = "cover";
-        pageEl.style.backgroundPosition = "center";
-        pageEl.style.backgroundColor = "#0a0a0f";
-        state.bgChosen = true;
-        return;
-      }
-      var el = document.createElement("div");
-      el.className = "canva-stage-element image";
-      el.id = "gold-" + idx;
-      el.dataset.type = "image";
-      el.dataset.assetId = a.id;
-      el.style.left   = a.xPct + "%";
-      el.style.top    = a.yPct + "%";
-      el.style.width  = a.wPct + "%";
-      el.style.height = a.hPct + "%";
-      el.style.zIndex = String(a.z);
-      el.style.mixBlendMode = "normal";
-      var img = document.createElement("img");
-      img.src = a.src;
-      img.alt = a.name;
-      img.style.width = "100%";
-      img.style.height = "100%";
-      img.style.objectFit = "contain";
-      img.style.display = "block";
-      img.draggable = false;
-      el.appendChild(img);
-      pageEl.appendChild(el);
-      hideEmpty(pageEl);
+    var dropX = ((cx - pageRect.left) / pageRect.width) * 100;
+    var dropY = ((cy - pageRect.top)  / pageRect.height) * 100;
 
-      var data = { id: el.id, type: "image", asset: a, x: a.xPct, y: a.yPct, w: a.wPct, h: a.hPct, moved: false };
-      state.elements.push(data);
+    var el = document.createElement("div");
+    el.className = "canva-stage-element image";
+    el.id = "placed-" + state.placeIndex;
+    el.dataset.type = "image";
+    el.dataset.assetId = asset.id;
+    el.style.left   = dropX + "%";
+    el.style.top    = dropY + "%";
+    el.style.width  = asset.wPct + "%";
+    el.style.height = asset.hPct + "%";
+    el.style.zIndex = String(asset.z);
 
-      el.addEventListener("click", function (e) { e.stopPropagation(); selectElement(root, data); });
-      makeDraggable(root, el, data);
-    });
-    /* Pre-place the birthday title text */
-    addTextElement(root, "Happy Birthday Stray! 🎂");
-    root.querySelectorAll("#canvaBgGrid .canva-swatch").forEach(function (s) {
-      s.classList.toggle("selected", s.dataset.bg === state.bg);
-    });
-    /* Auto-advance past title step — the pre-placed text satisfies it */
-    setTimeout(function () { advanceStep(root); }, 400);
+    var img = document.createElement("img");
+    img.src = asset.src;
+    img.alt = asset.name;
+    img.style.width = "100%";
+    img.style.height = "100%";
+    img.style.objectFit = "contain";
+    img.style.display = "block";
+    img.draggable = false;
+    el.appendChild(img);
+    pageEl.appendChild(el);
+    hideEmpty(pageEl);
+
+    var data = { id: el.id, type: "image", asset: asset, x: dropX, y: dropY, w: asset.wPct, h: asset.hPct, moved: false };
+    state.elements.push(data);
+    el.addEventListener("click", function (ev) { ev.stopPropagation(); selectElement(root, data); });
+    makeDraggable(root, el, data);
+
+    el.offsetHeight;
+    el.classList.add("snapping");
+    el.style.left = asset.xPct + "%";
+    el.style.top  = asset.yPct + "%";
+    data.x = asset.xPct;
+    data.y = asset.yPct;
+    data.moved = true;
+
+    showPlacedBadge(root, el);
+
+    var handler = function () {
+      el.removeEventListener("transitionend", handler);
+      finishAssetPlacement(root);
+    };
+    el.addEventListener("transitionend", handler);
   }
 
-  /* ---------------- Wiring ---------------- */
+  function showPlacedBadge(root, el) {
+    var badge = document.createElement("div");
+    badge.className = "canva-placed-badge";
+    badge.textContent = "✨ Placed!";
+    var pageEl = root.querySelector("#canvaPage");
+    var elRect = el.getBoundingClientRect();
+    var pageRect = pageEl.getBoundingClientRect();
+    badge.style.left = (elRect.left - pageRect.left + elRect.width / 2) + "px";
+    badge.style.top  = (elRect.top  - pageRect.top  - 10) + "px";
+    badge.style.transform = "translate(-50%, -100%)";
+    pageEl.appendChild(badge);
+    setTimeout(function () { badge.remove(); }, 850);
+  }
+
+  function finishAssetPlacement(root) {
+    state.placeIndex++;
+    if (state.placeIndex >= CANVA_ASSETS.length) {
+      addTextElement(root, "Happy Birthday Stray! 🎂");
+      renderTray(root);
+      setTimeout(function () { advanceStep(root); }, 500);
+    } else {
+      renderTray(root);
+    }
+  }
+
+/* ---------------- Wiring ---------------- */
   function setupInteractions(root) {
     var pageEl = root.querySelector("#canvaPage");
-
-    /* Sidebar tabs — visual only */
-    root.querySelectorAll(".canva-sidebar button[data-tab]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        root.querySelectorAll(".canva-sidebar button[data-tab]").forEach(function (b) { b.classList.remove("active"); });
-        btn.classList.add("active");
-        toast("Canva > " + btn.dataset.tab + " is a visual mock.");
-      });
-    });
 
     /* Background swatches */
     root.querySelectorAll("#canvaBgGrid .canva-swatch").forEach(function (sw) {
@@ -594,8 +715,8 @@
 
   function validateStep(id) {
     switch (id) {
+      case "place":      return state.placeIndex >= CANVA_ASSETS.length;
       case "title":      return state.elements.some(function (e) { return e.type === "text"; });
-      case "drag":       return state.elements.some(function (e) { return e.moved === true; });
       case "save":       return true;
       default:           return false;
     }
@@ -640,8 +761,8 @@
 
   function stepTitle(state) {
     var map = {
+      "place":      "Add gold elements",
       "title":      "Edit the title",
-      "drag":       "Arrange the design",
       "save":       "Save your gift"
     };
     return map[STEPS[state.step].id] || "";
