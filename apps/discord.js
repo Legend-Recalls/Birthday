@@ -25,7 +25,6 @@ window.AppDiscord = (function () {
       {
         category: "Direct Messages",
         items: [
-          { id: "sofia",         name: "Sofia",            type: "text", topic: "Direct message", avEmoji: "🟣",  avImg: "static/sofia.webp",  color: "#9b59b6", status: "online"  },
           { id: "straygrandma",  name: "STRAY'S GRANDMA",  type: "text", topic: "",                avEmoji: "👵",                           color: "#5b6b7a", status: "offline", sub: "9 Members" },
           { id: "attention",     name: "Attention whore",  type: "text", topic: "",                avEmoji: "⚽",                           color: "#27ae60", status: "dnd",     sub: "I luv all the time" },
           { id: "halalgc",       name: "Halal gc",         type: "text", topic: "",                avEmoji: "🕌",                           color: "#e67e22", status: "offline", sub: "7 Members" },
@@ -135,7 +134,7 @@ window.AppDiscord = (function () {
       { name: "Mia",     color: "#f0b232", dot: "#f0b232" }
     ],
     offline: [
-      { name: "✧ Sofia ✧", color: "#80848e", dot: "#80848e", avatar: "static/sofia.webp" }
+      { name: "✧ Sofia ✧", color: "#9b59b6", dot: "#80848e", avatar: "static/sofia.webp" }
     ]
   };
 

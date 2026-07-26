@@ -61,7 +61,7 @@ window.AppDiscordPanic = (function () {
       (function (i) {
         setTimeout(function () {
           ad.helpers.pushSofiaMessage({
-            author: "star Sofia star",
+            author: "✧ Sofia ✧",
             color: "#80848e",
             time: "Today at 12:05 AM",
             text: "HELP",

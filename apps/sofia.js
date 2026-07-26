@@ -10,23 +10,19 @@ window.AppSofia = (function () {
    * reputation is saved. Browses opens here as the next "browser step".
    */
   var SOFIA_SCRIPT = [
-    { user: "sofia? u ok?",                    sofia: "OMG finally crying",                                                      delay: 900  },
-    { user: "why were u spamming HELP",        sofia: "BC U WERNT ANSWERING STRAY",                                              delay: 1000 },
-    { user: "lol sorry was busy",              sofia: "BUSY ON UR BIRTHDAY?? omg",                                              delay: 1000 },
-    { user: "im fine chill skull",              sofia: "ok ok sorry. just wanted to make sure ur good",                         delay: 1100 },
-    { user: "i love u tho",                    sofia: "love u more heart",                                                      delay: 900  },
-    { user: "anyway whats going on",           sofia: "oh right. ok so we kinda forgot to get u a gift",                        delay: 1300 },
-    { user: "...",                              sofia: "WAIT WAIT DONT BE MAD",                                                  delay: 800  },
-    { user: "im not lol",                      sofia: "we made u something instead. this whole thing - fake mac, fake chrome, fake discord - all for you", delay: 2000 },
-    { user: "yall are unhinged crying",        sofia: "happy birthday tho cake sparkle",                                        delay: 1100 },
-    { user: "lol i love it",                   sofia: "we love u more. enjoy pout",                                             delay: 1000 },
-    /* New section: Sofia pivots — ask Stray to make his own gift to save their reputation. */
-    { user: "wait what",                        sofia: "wait actually... we kinda need u to make urself a gift now",            delay: 1500 },
-    { user: "lmao WHAT",                       sofia: "we forgot urs so ur post has to make us look good",                     delay: 1500 },
-    { user: "yall are dead to me",            sofia: "PLEASEEE our reputation is at stake",                                     delay: 1500 },
-    { user: "ugh fine",                        sofia: "thank u. chrome is right there. make something on a browser",           delay: 1500 },
-    { user: "heart",                            sofia: "love u happy birthday ok bye",                                           delay: 1000 },
-    { user: "hug",                              sofia: null,                                                                    delay: 600  }
+    { user: "sofia? u good?",                   sofia: "OMG finally 😭 yea im fine",                                            delay: 900  },
+    { user: "why were u spamming HELP",        sofia: "BC U WERENT ANSWERING LMAO",                                             delay: 1000 },
+    { user: "lol i was busy",                   sofia: "ON UR BIRTHDAY?? 💀 get ur priorities straight",                         delay: 1000 },
+    { user: "ok fair enough",                   sofia: "anyway... so we kinda forgot to get u a gift 😅",                        delay: 1300 },
+    { user: "...",                              sofia: "WAIT DONT BE MAD PLS",                                                   delay: 800  },
+    { user: "im not mad lol",                   sofia: "we made u this whole thing instead — fake mac, fake chrome, fake discord — all for u 🎉", delay: 2000 },
+    { user: "thats actually insane lol",        sofia: "HAPPY BIRTHDAY THO 🎂✨ ur welcome",                                 delay: 1100 },
+    { user: "ok wait this is actually so cool", sofia: "ikr 😌 but also... we kinda need u to make ur own gift now lol",          delay: 1500 },
+    { user: "wdym",                             sofia: "we forgot urs so now its on u 💀 go make something on a browser",       delay: 1500 },
+    { user: "yall are actually useless lol",    sofia: "PLEASEEE our reputation is on the line 😭",                               delay: 1500 },
+    { user: "fine whatever",                    sofia: "THANK U 🙏 chrome is right there. make us proud bestie",                delay: 1500 },
+    { user: "ur lucky ur my friend",           sofia: "ik 😌 happy birthday ok byeee",                                          delay: 1000 },
+    { user: "bye sofia",                        sofia: null,                                                                    delay: 600  }
   ];
 
   var ctx = null;          /* install(ctx) sets this */
@@ -106,7 +102,7 @@ window.AppSofia = (function () {
       pending = null;
       if (item.sofia) {
         ctx.pushMessage({
-          author: "star Sofia star", color: "#80848e",
+          author: "✧ Sofia ✧", color: "#80848e",
           time: ctx.timeNow(), text: item.sofia, avImg: "static/sofia.webp"
         }, "sofia");
         ctx.refreshSofia();
