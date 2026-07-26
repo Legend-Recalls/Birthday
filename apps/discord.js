@@ -28,8 +28,8 @@ window.AppDiscord = (function () {
           { id: "straygrandma",  name: "STRAY'S GRANDMA",  type: "text", topic: "",                avEmoji: "👵",                           color: "#5b6b7a", status: "offline", sub: "9 Members" },
           { id: "attention",     name: "Attention whore",  type: "text", topic: "",                avEmoji: "⚽",                           color: "#27ae60", status: "dnd",     sub: "I luv all the time" },
           { id: "halalgc",       name: "Halal gc",         type: "text", topic: "",                avEmoji: "🕌",                           color: "#e67e22", status: "offline", sub: "7 Members" },
-          { id: "hanaria",       name: "Hanaria",          type: "text", topic: "",                avEmoji: "🌸",  avImg: "static/hanaria.webp", color: "#f23f42", status: "online"  },
-          { id: "lells",         name: "Lells",            type: "text", topic: "",                avEmoji: "🐱",  avImg: "static/lells.webp",   color: "#23a55a", status: "online"  },
+          { id: "hanaria",       name: "Hanaria",          type: "text", topic: "",                avEmoji: "🌸",                           color: "#f23f42", status: "online"  },
+          { id: "lells",         name: "Lells",            type: "text", topic: "",                avEmoji: "🐱",                           color: "#23a55a", status: "online"  },
           { id: "mia",           name: "Mia",              type: "text", topic: "",                avEmoji: "✨",                            color: "#f0b232", status: "offline" }
         ]
       }
@@ -68,7 +68,7 @@ window.AppDiscord = (function () {
       { author: "Noah", color: "#23a55a", avEmoji: "N", time: "Today at 10:15 AM", text: "No messages are sent to a server." }
     ],
     hanaria: [
-      { author: "Hanaria", color: "#f23f42", avEmoji: "🌸", time: "7:30 PM", text: "stray ur so annoying omg" },
+      { author: "Hanaria", color: "#f23f42", avEmoji: "🌸", avImg: "static/hanaria.webp", time: "7:30 PM", text: "stray ur so annoying omg" },
       { author: "Stray",    color: "#5865f2", avEmoji: "😈", time: "7:31 PM", text: "love u too" },
       { author: "Hanaria", color: "#f23f42", avEmoji: "🌸", time: "7:31 PM", text: "stfu 💀" },
       { author: "Hanaria", color: "#f23f42", avEmoji: "🌸", time: "7:32 PM", text: "anyway wya tmrw" },
@@ -76,7 +76,7 @@ window.AppDiscord = (function () {
       { author: "Hanaria", color: "#f23f42", avEmoji: "🌸", time: "7:33 PM", text: "bro has no life 💀" }
     ],
     lells: [
-      { author: "Lells", color: "#23a55a", avEmoji: "🐱", time: "6:15 PM", text: "YO STRAY" },
+      { author: "Lells", color: "#23a55a", avEmoji: "🐱", avImg: "static/lells.webp", time: "6:15 PM", text: "YO STRAY" },
       { author: "Stray", color: "#5865f2", avEmoji: "😈", time: "6:15 PM", text: "what" },
       { author: "Lells", color: "#23a55a", avEmoji: "🐱", time: "6:16 PM", text: "nothing just wanted to see if ur alive" },
       { author: "Stray", color: "#5865f2", avEmoji: "😈", time: "6:16 PM", text: "barely" },
