@@ -11,47 +11,59 @@
 (function () {
   if (!window.AppBrowser) { console.warn("[canva.js] AppBrowser not loaded"); return; }
 
-  /* ---------------- Canva assets (real gold-themed birthday design) ---------------- */
-  /* Spread across 5:4 canvas: confetti background + frames + balloons + overlays. */
-  var CANVA_ASSETS = [
-    { id: "canva-001", name: "Gold Confetti Wallpaper", src: "static/canva-001.jpg", color: "#d4a574", emoji: "✨",
-      xPct: 0, yPct: 0, wPct: 100, hPct: 100, z: 0, isBg: true },
-    { id: "canva-002", name: "Golden Stars Frame",      src: "static/canva-002.png", color: "#daa520", emoji: "⭐",
-      xPct: 2,  yPct: 14, wPct: 28, hPct: 62, z: 4 },
-    { id: "canva-003", name: "Golden Stars Frame",      src: "static/canva-003.png", color: "#daa520", emoji: "⭐",
-      xPct: 70, yPct: 12, wPct: 28, hPct: 64, z: 5 },
-    { id: "canva-004", name: "Golden Square Frame",     src: "static/canva-004.webp", color: "#c9a96e", emoji: "□",
-      xPct: 27, yPct: 22, wPct: 46, hPct: 56, z: 3 },
-    { id: "canva-005", name: "Gold Glitter Balloons",   src: "static/canva-005.webp", color: "#d4af37", emoji: "🎈",
-      xPct: 2,  yPct: 8,  wPct: 12, hPct: 70, z: 8 },
-    { id: "canva-006", name: "Gold Glitter Balloons",   src: "static/canva-006.webp", color: "#d4af37", emoji: "🎈",
-      xPct: 86, yPct: 6,  wPct: 12, hPct: 72, z: 9 },
-    { id: "canva-007", name: "Gold Overlay",            src: "static/canva-007.png", color: "#b8860b", emoji: "🌟",
-      xPct: 12, yPct: 72, wPct: 14, hPct: 20, z: 6 },
-    { id: "canva-008", name: "Gold Deco",               src: "static/canva-008.png", color: "#ffd700", emoji: "✧",
-      xPct: 74, yPct: 70, wPct: 14, hPct: 20, z: 7 }
+  /* ---------------- Draggable assets (positions from canva-layout-*.json) ---------------- */
+  /* Each percent value (xPct, yPct, wPct, hPct) is exactly the position of that
+   * element in the JSON file's 1536x395 viewport. The canva-page is 5:4, so the
+   * elements look like the *real* design: clustered in the central area. */
+  var DRAGGABLE_ASSETS = [
+    /* JSON idx 1: "Golden Stars and Moon Cutout" - LEFT star frame */
+    { id: "01-star-l",  src: "static/canva-002.png", name: "Golden Stars & Moon (left)",
+      xPct: 45.34, yPct: 43.79, wPct: 7.45,  hPct: 28.98, z: 4 },
+    /* JSON idx 2: "Golden Stars and Moon Cutout" - RIGHT star frame */
+    { id: "02-star-r",  src: "static/canva-003.png", name: "Golden Stars & Moon (right)",
+      xPct: 52.47, yPct: 42.56, wPct: 7.95,  hPct: 30.93, z: 5 },
+    /* JSON idx 3: "golden square frame" - center frame */
+    { id: "03-frame",   src: "static/canva-004.webp", name: "Golden Square Frame",
+      xPct: 47.82, yPct: 41.95, wPct: 9.05,  hPct: 25.06, z: 3 },
+    /* JSON idx 4: "Glod Glitter Balloons" - LEFT, tall */
+    { id: "04-balloons-l", src: "static/canva-005.webp", name: "Glitter Balloons (left)",
+      xPct: 46.04, yPct: 38.61, wPct: 3.23,  hPct: 35.10, z: 8 },
+    /* JSON idx 5: "Glod Glitter Balloons" - RIGHT, tall */
+    { id: "05-balloons-r", src: "static/canva-006.webp", name: "Glitter Balloons (right)",
+      xPct: 55.59, yPct: 44.31, wPct: 3.23,  hPct: 35.10, z: 9 },
+    /* JSON idx 6: small bottom-center decorative */
+    { id: "06-deco-1",  src: "static/canva-007.png", name: "Gold Decoration",
+      xPct: 52.47, yPct: 58.08, wPct: 3.12,  hPct: 17.52, z: 6 },
+    /* JSON idx 7: tiny bottom-center cluster */
+    { id: "07-deco-2",  src: "static/canva-008.png", name: "Gold Star Cluster",
+      xPct: 49.07, yPct: 57.75, wPct: 2.45,  hPct: 12.18, z: 7 }
   ];
 
-  /* ---------------- Tutorial steps ---------------- */
-  var STEPS = [
-    {
-      id: "place",
+  /* ---------------- Tutorial steps (generated from draggables) ---------------- */
+  /* 9 steps total: one per draggable asset + title + save. Each drop validates
+   * the current step's bucket, then advances to the next bucket. */
+  var STEPS = [];
+  DRAGGABLE_ASSETS.forEach(function (a, i) {
+    STEPS.push({
+      id: "place-" + a.id,
+      kind: "place",
+      assetIdx: i,
       selector: ".canva-tray-item",
-      tip: "Drag the gold element from the sidebar onto your gift card!"
-    },
-    {
-      id: "title",
-      selector: ".canva-stage-element.text",
-      tip: "Double-click the title to edit it. Make it say whatever you want!"
-    },
-    {
-      id: "save",
-      selector: "[data-canva-act='save']",
-      tip: "Click '💾 Save & Finish' when your gift looks perfect!"
-    }
-  ];
-
-  /* ---------------- Editor CSS ---------------- */
+      tip: "Drag the " + escapeHTML(a.name) + " onto your gift card!"
+    });
+  });
+  STEPS.push({
+    id: "title",
+    kind: "title",
+    selector: ".canva-stage-element.text",
+    tip: "Double-click the title to edit it - put anything you want!"
+  });
+  STEPS.push({
+    id: "save",
+    kind: "save",
+    selector: "[data-canva-act='save']",
+    tip: "Click the 💾 Save & Finish button when your gift looks perfect!"
+  });  /* ---------------- Editor CSS ---------------- */
   function canvaStyle() {
     return [
       "<style>",
@@ -178,18 +190,12 @@
       '    <button class="canva-share" data-canva-act="publish">Share</button>',
       '  </div>',
       '  <div class="canva-stepbar" id="canvaStepbar">',
-      '    <span class="step-num" id="canvaStepNum">1 / 3</span>',
-      '    <span class="step-tip" id="canvaStepTip">Drag the gold element onto your gift card!</span>',
+      '    <span class="step-num" id="canvaStepNum">1 / 9</span>',
+      '    <span class="step-tip" id="canvaStepTip">Drag the first gold element onto your gift!</span>',
       '  </div>',
       '  <div class="canva-main">',
       '        <div class="canva-sidebar">',
-      '      <div class="canva-tray" id="canvaTray">',
-      '        <div class="canva-tray-counter">Item 1 of 7</div>',
-      '        <div class="canva-tray-item pulse">',
-      '          <img src="static/canva-002.png" alt="Drag me" draggable="false" />',
-      '        </div>',
-      '        <div class="canva-tray-label">Golden Stars Frame</div>',
-      '      </div>',
+      '      <div class="canva-tray" id="canvaTray"></div>',
       '    </div>',
       '    <div class="canva-canvas" id="canvaCanvas">',
       '      <div class="canva-page" id="canvaPage">',
@@ -251,15 +257,12 @@
   /* ---------------- Main render ---------------- */
   function render(contentEl, url, title) {
     contentEl.innerHTML = canvaStyle() + bodyHTML();
-    state = { bg: "#0a0a0f", bgChosen: false, elements: [], step: 0, completed: false, placeIndex: 1 };
+    state = { bg: "#0a0a0f", bgChosen: false, elements: [], step: 0, completed: false, placed: [] };
     zCounter = 10;
     setupInteractions(contentEl);
-    showStep(contentEl, 0);
 
-    if (window.AppCommon && typeof window.AppCommon.emit === "function") {
-      window.AppCommon.emit("walkthrough:browser-opened", { url: "canva.com" });
-    }
-    /* Apply confetti wallpaper background immediately. */
+    /* Apply confetti wallpaper background BEFORE the first step so the
+     * coach-mark spotlight can see everything inside the canva-page. */
     var pageEl = contentEl.querySelector("#canvaPage");
     if (pageEl) {
       pageEl.style.backgroundImage = "url(static/canva-001.jpg)";
@@ -268,25 +271,42 @@
       pageEl.style.backgroundColor = "#0a0a0f";
       state.bgChosen = true;
     }
-    /* Render the first draggable asset in the tray. */
+
+    /* Populate the tray FIRST so the coach mark spotlight can find the
+     * .canva-tray-item target on the very first frame. */
     renderTray(contentEl);
+    showStep(contentEl, 0);
+
+    if (window.AppCommon && typeof window.AppCommon.emit === "function") {
+      window.AppCommon.emit("walkthrough:browser-opened", { url: "canva.com" });
+    }
   }
 
   /* ---------------- Asset Tray & Drag System ---------------- */
 
-  /* Render the sidebar tray showing the current asset to drag. */
+  /* Render the sidebar tray: show the asset for the current step. */
   function renderTray(root) {
     var tray = root.querySelector("#canvaTray");
     if (!tray) return;
-    var idx = state.placeIndex;
-    if (idx >= CANVA_ASSETS.length) {
-      tray.innerHTML = '<div class="canva-tray-done">✅ All done!<br><span style="font-size:10px;color:#888">Edit the title next</span></div>';
+    tray.innerHTML = "";
+    if (state.completed) {
+      tray.innerHTML = '<div class="canva-tray-done">🎉 Done!</div>';
       return;
     }
-    var a = CANVA_ASSETS[idx];
+    var step = STEPS[state.step];
+    if (!step) return;
+    if (step.kind !== "place") {
+      /* Title / save step - nothing in tray */
+      tray.innerHTML = '<div class="canva-tray-done">✅ Step done<br><span style="font-size:10px;color:#888">continue below</span></div>';
+      return;
+    }
+    /* Show the asset to drag (1 of 7 -> placed-count + 1) */
+    var i = step.assetIdx;
+    var a = DRAGGABLE_ASSETS[i];
+    var placedCount = state.placed.length;
     tray.innerHTML =
-      '<div class="canva-tray-counter">Item ' + idx + ' of ' + (CANVA_ASSETS.length - 1) + '</div>' +
-      '<div class="canva-tray-item pulse" data-canva-drag="' + idx + '">' +
+      '<div class="canva-tray-counter">Item ' + (placedCount + 1) + ' of ' + DRAGGABLE_ASSETS.length + '</div>' +
+      '<div class="canva-tray-item pulse" data-canva-drag="' + i + '">' +
         '<img src="' + a.src + '" alt="' + escapeHTML(a.name) + '" draggable="false" />' +
       '</div>' +
       '<div class="canva-tray-label">' + escapeHTML(a.name) + '</div>';
@@ -356,7 +376,7 @@
 
     var el = document.createElement("div");
     el.className = "canva-stage-element image";
-    el.id = "placed-" + state.placeIndex;
+    el.id = uid();
     el.dataset.type = "image";
     el.dataset.assetId = asset.id;
     el.style.left   = dropX + "%";
@@ -382,15 +402,27 @@
     el.addEventListener("click", function (ev) { ev.stopPropagation(); selectElement(root, data); });
     makeDraggable(root, el, data);
 
+    /* Force layout, then snap to JSON target position. */
     el.offsetHeight;
     el.classList.add("snapping");
     el.style.left = asset.xPct + "%";
     el.style.top  = asset.yPct + "%";
+    el.style.width  = asset.wPct + "%";
+    el.style.height = asset.hPct + "%";
     data.x = asset.xPct;
     data.y = asset.yPct;
+    data.w = asset.wPct;
+    data.h = asset.hPct;
     data.moved = true;
 
     showPlacedBadge(root, el);
+
+    /* Mark this asset as placed for the current step's bucket. */
+    var step = STEPS[state.step];
+    var assetIdx = step ? step.assetIdx : -1;
+    if (assetIdx >= 0 && state.placed.indexOf(assetIdx) < 0) {
+      state.placed.push(assetIdx);
+    }
 
     var handler = function () {
       el.removeEventListener("transitionend", handler);
@@ -414,14 +446,19 @@
   }
 
   function finishAssetPlacement(root) {
-    state.placeIndex++;
-    if (state.placeIndex >= CANVA_ASSETS.length) {
-      addTextElement(root, "Happy Birthday Stray! 🎂");
-      renderTray(root);
-      setTimeout(function () { advanceStep(root); }, 500);
-    } else {
-      renderTray(root);
+    var step = STEPS[state.step];
+    if (!step) return;
+    if (step.kind === "place") {
+      if (!state.completed && state.step < STEPS.length - 1 && validateStep(step.id)) {
+        /* Last-place index = STEPS.length - 3 (e.g. 6 when total=9) -> next step is 'title'. */
+        var wasLastPlace = (state.step === STEPS.length - 3);
+        advanceStep(root);
+        if (wasLastPlace && !state.completed && !state.elements.some(function (e) { return e.type === "text"; })) {
+          addTextElement(root, "Happy Birthday Stray! 🎂");
+        }
+      }
     }
+    /* renderTray is now called inside showStep(), so no need here. */
   }
 
 /* ---------------- Wiring ---------------- */
@@ -670,7 +707,7 @@
       '  <h3>Pick a gold element to add</h3>',
       '  <div class="picker-grid">'
     ];
-    CANVA_ASSETS.forEach(function (a) {
+    DRAGGABLE_ASSETS.forEach(function (a) {
       var avatarInner = a.src
         ? '<img src="' + a.src + '" alt="' + escapeHTML(a.name) + '" style="width:100%;height:100%;object-fit:cover;" />'
         : escapeHTML(a.emoji || "✨");
@@ -693,7 +730,7 @@
       }
       var tile = e.target.closest("[data-asset-id]");
       if (tile) {
-        var asset = CANVA_ASSETS.find(function (a) { return a.id === tile.dataset.assetId; });
+        var asset = DRAGGABLE_ASSETS.find(function (a) { return a.id === tile.dataset.assetId; });
         mask.remove();
         if (asset) {
           addImageElement(root, asset);
@@ -710,6 +747,8 @@
     var step = STEPS[idx];
     root.querySelector("#canvaStepNum").textContent = (idx + 1) + " / " + STEPS.length;
     root.querySelector("#canvaStepTip").textContent = step.tip;
+    /* Render tray AFTER state.step is updated so the asset for THIS step appears. */
+    renderTray(root);
     renderCoachMark(root, step);
   }
 
@@ -722,12 +761,19 @@
   }
 
   function validateStep(id) {
-    switch (id) {
-      case "place":      return state.placeIndex >= CANVA_ASSETS.length;
-      case "title":      return state.elements.some(function (e) { return e.type === "text"; });
-      case "save":       return true;
-      default:           return false;
+    /* "place-XXX-id" steps require that asset to be in state.placed[]. */
+    if (id.indexOf("place-") === 0) {
+      /* Find which DRAGGABLE_ASSETS slot is required for this step. */
+      for (var s = 0; s < STEPS.length; s++) {
+        if (STEPS[s].id === id) {
+          return state.placed.indexOf(STEPS[s].assetIdx) >= 0;
+        }
+      }
+      return false;
     }
+    if (id === "title") return state.elements.some(function (e) { return e.type === "text"; });
+    if (id === "save")  return true;
+    return false;
   }
 
   function renderCoachMark(root, step) {
@@ -767,13 +813,13 @@
     mask._placeFn = place;
   }
 
-  function stepTitle(state) {
-    var map = {
-      "place":      "Add gold elements",
-      "title":      "Edit the title",
-      "save":       "Save your gift"
-    };
-    return map[STEPS[state.step].id] || "";
+  function stepTitle() {
+    var s = STEPS[state.step];
+    if (!s) return "";
+    if (s.kind === "place") return "Add gold element";
+    if (s.kind === "title") return "Edit the title";
+    if (s.kind === "save")  return "Save your gift";
+    return "";
   }
 
   function positionSpotlight(sp, target, rootEl) {
