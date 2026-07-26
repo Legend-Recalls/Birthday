@@ -1,10 +1,8 @@
 /* apps/pages/canva.js — Guided interactive Canva-style editor.
- * Walks Stray through making his own birthday gift in 5 tutorial steps:
- *   1. Pick a background color
- *   2. Add a title
- *   3. Add a friend photo
- *   4. Drag things into place
- *   5. Save & finish
+ * Walks Stray through making his own birthday gift in 3 tutorial steps:
+ *   1. Edit the pre-placed title
+ *   2. Drag gold elements to rearrange
+ *   3. Save & finish
  * On save, fires `walkthrough:gift-complete` (window event + AppCommon bus).
  * Registered with AppBrowser via the canva.com URL matcher.
  *
@@ -13,53 +11,43 @@
 (function () {
   if (!window.AppBrowser) { console.warn("[canva.js] AppBrowser not loaded"); return; }
 
-  /* ---------------- Canva assets (scraped from the real birthday design) ---------------- */
-  /* Positions derived from canva-layout-*.json, mapped to % of 1536x395 viewport. */
+  /* ---------------- Canva assets (real gold-themed birthday design) ---------------- */
+  /* Spread across 5:4 canvas: confetti background + frames + balloons + overlays. */
   var CANVA_ASSETS = [
     { id: "canva-001", name: "Gold Confetti Wallpaper", src: "static/canva-001.jpg", color: "#d4a574", emoji: "✨",
-      xPct: 46.3, yPct: 38.1, wPct: 12.1, hPct: 32.8, z: 1 },
+      xPct: 0, yPct: 0, wPct: 100, hPct: 100, z: 0, isBg: true },
     { id: "canva-002", name: "Golden Stars Frame",      src: "static/canva-002.png", color: "#daa520", emoji: "⭐",
-      xPct: 45.3, yPct: 43.8, wPct: 7.5,  hPct: 29.0, z: 4 },
+      xPct: 2,  yPct: 14, wPct: 28, hPct: 62, z: 4 },
     { id: "canva-003", name: "Golden Stars Frame",      src: "static/canva-003.png", color: "#daa520", emoji: "⭐",
-      xPct: 52.5, yPct: 42.6, wPct: 7.9,  hPct: 30.9, z: 5 },
+      xPct: 70, yPct: 12, wPct: 28, hPct: 64, z: 5 },
     { id: "canva-004", name: "Golden Square Frame",     src: "static/canva-004.webp", color: "#c9a96e", emoji: "□",
-      xPct: 47.8, yPct: 42.0, wPct: 9.0,  hPct: 25.1, z: 3 },
+      xPct: 27, yPct: 22, wPct: 46, hPct: 56, z: 3 },
     { id: "canva-005", name: "Gold Glitter Balloons",   src: "static/canva-005.webp", color: "#d4af37", emoji: "🎈",
-      xPct: 46.0, yPct: 38.6, wPct: 3.2,  hPct: 35.1, z: 8 },
+      xPct: 2,  yPct: 8,  wPct: 12, hPct: 70, z: 8 },
     { id: "canva-006", name: "Gold Glitter Balloons",   src: "static/canva-006.webp", color: "#d4af37", emoji: "🎈",
-      xPct: 55.6, yPct: 44.3, wPct: 3.2,  hPct: 35.1, z: 9 },
+      xPct: 86, yPct: 6,  wPct: 12, hPct: 72, z: 9 },
     { id: "canva-007", name: "Gold Overlay",            src: "static/canva-007.png", color: "#b8860b", emoji: "🌟",
-      xPct: 52.5, yPct: 58.1, wPct: 3.1,  hPct: 17.5, z: 6 },
+      xPct: 12, yPct: 72, wPct: 14, hPct: 20, z: 6 },
     { id: "canva-008", name: "Gold Deco",               src: "static/canva-008.png", color: "#ffd700", emoji: "✧",
-      xPct: 49.1, yPct: 57.7, wPct: 2.5,  hPct: 12.2, z: 7 }
+      xPct: 74, yPct: 70, wPct: 14, hPct: 20, z: 7 }
   ];
 
   /* ---------------- Tutorial steps ---------------- */
   var STEPS = [
     {
-      id: "background",
-      selector: ".canva-swatch",
-      tip: "Click any color swatch on the right to set the card's background."
-    },
-    {
       id: "title",
-      selector: "[data-canva-act='addtext']",
-      tip: "Click '🅰 Add Text' to place a birthday title on the card. Double-click to edit."
-    },
-    {
-      id: "photo",
-      selector: "[data-canva-act='addimage']",
-      tip: "Click '🖼 Add Image' and pick a gold element to add to the card."
+      selector: ".canva-stage-element.text",
+      tip: "Double-click the title to edit it. Make it say whatever you want!"
     },
     {
       id: "drag",
       selector: ".canva-stage-element",
-      tip: "Click and drag any element to reposition it."
+      tip: "Click and drag any gold element to rearrange the design."
     },
     {
       id: "save",
       selector: "[data-canva-act='save']",
-      tip: "Click '💾 Save & Finish' when you're happy with the gift."
+      tip: "Click '💾 Save & Finish' when your gift looks perfect!"
     }
   ];
 
@@ -168,8 +156,8 @@
       '    <button class="canva-share" data-canva-act="publish">Share</button>',
       '  </div>',
       '  <div class="canva-stepbar" id="canvaStepbar">',
-      '    <span class="step-num" id="canvaStepNum">1 / 5</span>',
-      '    <span class="step-tip" id="canvaStepTip">Click any color swatch on the right to set the background.</span>',
+      '    <span class="step-num" id="canvaStepNum">1 / 3</span>',
+      '    <span class="step-tip" id="canvaStepTip">Double-click the title to edit it!</span>',
       '  </div>',
       '  <div class="canva-main">',
       '    <div class="canva-sidebar">',
@@ -254,11 +242,21 @@
     placeDefaultLayout(contentEl);
   }
 
-  /* Places all CANVA_ASSETS onto the canvas at JSON-derived % positions. */
+  /* Places all CANVA_ASSETS onto the canvas with proper spread layout.
+   * canva-001 (confetti) -> page background image; all others -> draggable elements. */
   function placeDefaultLayout(root) {
     var pageEl = root.querySelector("#canvaPage");
     if (!pageEl) return;
     CANVA_ASSETS.forEach(function (a, idx) {
+      if (a.isBg) {
+        /* Use confetti wallpaper as the page background */
+        pageEl.style.backgroundImage = "url(" + a.src + ")";
+        pageEl.style.backgroundSize = "cover";
+        pageEl.style.backgroundPosition = "center";
+        pageEl.style.backgroundColor = "#0a0a0f";
+        state.bgChosen = true;
+        return;
+      }
       var el = document.createElement("div");
       el.className = "canva-stage-element image";
       el.id = "gold-" + idx;
@@ -277,6 +275,7 @@
       img.style.height = "100%";
       img.style.objectFit = "contain";
       img.style.display = "block";
+      img.draggable = false;
       el.appendChild(img);
       pageEl.appendChild(el);
       hideEmpty(pageEl);
@@ -287,12 +286,13 @@
       el.addEventListener("click", function (e) { e.stopPropagation(); selectElement(root, data); });
       makeDraggable(root, el, data);
     });
-    /* After pre-loading all assets, mark background as chosen so step 1 completes. */
-    state.bgChosen = true;
-    pageEl.style.background = state.bg;
+    /* Pre-place the birthday title text */
+    addTextElement(root, "Happy Birthday Stray! 🎂");
     root.querySelectorAll("#canvaBgGrid .canva-swatch").forEach(function (s) {
       s.classList.toggle("selected", s.dataset.bg === state.bg);
     });
+    /* Auto-advance past title step — the pre-placed text satisfies it */
+    setTimeout(function () { advanceStep(root); }, 400);
   }
 
   /* ---------------- Wiring ---------------- */
@@ -317,7 +317,7 @@
         pageEl.style.background = state.bg;
         root.querySelectorAll("#canvaBgGrid .canva-swatch").forEach(function (s) { s.classList.remove("selected"); });
         sw.classList.add("selected");
-        if (STEPS[state.step].id === "background") advanceStep(root);
+        /* Background changes are visual-only — no step advancement needed */
       });
     });
 
@@ -562,13 +562,13 @@
         mask.remove();
         return;
       }
-      var tile = e.target.closest("[data-friend]");
+      var tile = e.target.closest("[data-asset-id]");
       if (tile) {
         var asset = CANVA_ASSETS.find(function (a) { return a.id === tile.dataset.assetId; });
         mask.remove();
         if (asset) {
           addImageElement(root, asset);
-          if (STEPS[state.step].id === "photo") advanceStep(root);
+          /* Image added — visual only */
         }
       }
     });
@@ -594,9 +594,7 @@
 
   function validateStep(id) {
     switch (id) {
-      case "background": return state.bgChosen;
       case "title":      return state.elements.some(function (e) { return e.type === "text"; });
-      case "photo":      return state.elements.some(function (e) { return e.type === "image"; });
       case "drag":       return state.elements.some(function (e) { return e.moved === true; });
       case "save":       return true;
       default:           return false;
@@ -642,10 +640,8 @@
 
   function stepTitle(state) {
     var map = {
-      "background": "Pick a background",
-      "title":      "Add a title",
-      "photo":      "Add a gold element",
-      "drag":       "Move things around",
+      "title":      "Edit the title",
+      "drag":       "Arrange the design",
       "save":       "Save your gift"
     };
     return map[STEPS[state.step].id] || "";
