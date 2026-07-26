@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>For Stray</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body {
+      display: grid; place-items: center; overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #fff;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(88,101,242,.35), transparent 30%),
+        radial-gradient(circle at 80% 30%, rgba(235,69,158,.25), transparent 28%),
+        radial-gradient(circle at 50% 80%, rgba(35,165,90,.18), transparent 30%),
+        #0a0a0c;
+    }
+    .card {
+      width: min(480px, calc(100vw - 32px));
+      padding: 42px 32px; border-radius: 28px; text-align: center;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 30px 80px rgba(0,0,0,.45);
+      -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    }
+    .card h1 { font-size: 34px; margin: 0 0 10px; letter-spacing: -.03em; }
+    .card p  { color: rgba(255,255,255,.72); margin: 0 0 26px; line-height: 1.5; }
+    #startBtn {
+      width: 100%; height: 52px; border: 0; border-radius: 14px; cursor: pointer;
+      font-size: 16px; font-weight: 700; color: #fff;
+      background: linear-gradient(135deg, #5865f2, #eb459e);
+      box-shadow: 0 16px 35px rgba(88,101,242,.35);
+    }
+    #startBtn:hover { filter: brightness(1.06); }
+    .hint { margin-top: 14px; font-size: 13px; color: rgba(255,255,255,.55); }
+    #appFrame { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; display: none; background: #000; }
+  </style>
+</head>
+<body>
+  <main class="card" id="card">
+    <h1>For Stray 🎁</h1>
+    <p>This is best experienced fullscreen.</p>
+    <button id="startBtn">Go Fullscreen for full experience</button>
+    <div class="hint">Clicking will start the surprise.</div>
+  </main>
+
+  <iframe id="appFrame" title="Birthday walkthrough" allow="fullscreen"></iframe>
+
+  <script>
+    const card = document.getElementById("card");
+    const frame = document.getElementById("appFrame");
+    let launched = false;
+
+    async function enterFullscreen() {
+      const el = document.documentElement;
+      try {
+        if (el.requestFullscreen) await el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+      } catch (e) { /* continue anyway */ }
+    }
+
+    document.getElementById("startBtn").addEventListener("click", async () => {
+      if (launched) return;
+      launched = true;
+      await enterFullscreen();
+      card.style.display = "none";
+      frame.style.display = "block";
+      frame.src = "emulator.html?start=1";
+    });
+  </script>
+</body>
+</html>
