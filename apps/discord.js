@@ -148,13 +148,17 @@ window.AppDiscord = (function () {
 
   function messageHTML(m, showHeader) {
     if (showHeader === false) {
-      return '<div class="message msg-cont"><div class="msg-body"><div class="text">' + escapeHTML(m.text) + "</div></div></div>";
+      var bodyInner = escapeHTML(m.text);
+      if (m.image) bodyInner += '<div class="msg-image"><img src="' + m.image + '" alt="gift" /></div>';
+      return '<div class="message msg-cont"><div class="msg-body"><div class="text">' + bodyInner + "</div></div></div>";
     }
     var av = m.avImg
       ? '<img src="' + m.avImg + '" class="av-img" alt="">'
       : escapeHTML(m.avEmoji || initials(m.author));
     var st = m.avImg ? "" : "background:" + (m.color || "#5865f2");
     var badge = m.badge ? '<span class="author-badge">' + escapeHTML(m.badge) + "</span>" : "";
+    var textPart = '<div class="text">' + escapeHTML(m.text) + "</div>";
+    if (m.image) textPart += '<div class="msg-image"><img src="' + m.image + '" alt="gift" /></div>';
     return (
       '<div class="message">' +
         '<div class="avatar msg-av" style="' + st + '">' + av + "</div>" +
@@ -163,7 +167,7 @@ window.AppDiscord = (function () {
             '<span class="author">' + escapeHTML(m.author) + "</span>" + badge +
             '<span class="time">' + escapeHTML(m.time || "") + "</span>" +
           "</div>" +
-          '<div class="text">' + escapeHTML(m.text) + "</div>" +
+          textPart +
         "</div>" +
       "</div>"
     );

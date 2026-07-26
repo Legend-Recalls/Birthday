@@ -647,18 +647,140 @@
     var stepTip  = root.querySelector("#canvaStepTip");
     if (stepbar) stepbar.classList.add("done");
     if (stepNum) stepNum.textContent = "🎉";
-    if (stepTip) stepTip.textContent = "Saved. Sofia's going to love this.";
+    if (stepTip) stepTip.textContent = "Saving…";
 
-    /* Fire completion events (window-level for any direct listener, bus for the bootstrap). */
-    window.dispatchEvent(new CustomEvent("walkthrough:gift-complete", {
-      detail: { elements: state.elements.length, bg: state.bg }
-    }));
+    /* Capture the canva page as a dataURL so we can drop it on the desktop. */
+    captureCanvas(root, function (dataURL) {
+      if (stepTip) stepTip.textContent = "Saved. Sofia's going to love this.";
+      fireCompletion(dataURL);
+    });
+  }
+
+  function fireCompletion(dataURL) {
+    var detail = { elements: state.elements.length, bg: state.bg, image: dataURL || null };
+    window.dispatchEvent(new CustomEvent("walkthrough:gift-complete", { detail: detail }));
     if (window.AppCommon && typeof window.AppCommon.emit === "function") {
-      window.AppCommon.emit("walkthrough:gift-complete", {
-        elements: state.elements.length,
-        bg: state.bg
-      });
+      window.AppCommon.emit("walkthrough:gift-complete", detail);
     }
+  }
+
+  /* Capture the canva-page element onto a hidden canvas and return a dataURL.
+   * We manually draw: background fill, then each text / image element
+   * positioned in percentage-space. Friend photos are pre-loaded via Image().
+   * Falls back to firing completion without an image on any error. */
+  function captureCanvas(root, cb) {
+    try {
+      var pageEl = root.querySelector("#canvaPage");
+      if (!pageEl) { cb(null); return; }
+
+      var W = 640, H = 512;
+      var c = document.createElement("canvas");
+      c.width = W; c.height = H;
+      var cx = c.getContext("2d");
+
+      /* Background */
+      cx.fillStyle = state.bg || "#ffffff";
+      cx.fillRect(0, 0, W, H);
+
+      var elems = state.elements.slice();
+      var pending = 0;
+      var done = false;
+
+      function finish() {
+        if (done) return;
+        done = true;
+        try { cb(c.toDataURL("image/png")); } catch (e) { cb(null); }
+      }
+
+      function drawText(el) {
+        var sz = (el.fontSize || 30) * (W / 100) * 0.55;
+        cx.font = "bold " + sz + "px -apple-system, 'Segoe UI', sans-serif";
+        cx.fillStyle = el.color || "#2a1a4d";
+        cx.textBaseline = "top";
+        var x = (el.x / 100) * W;
+        var y = (el.y / 100) * H;
+        wrapText(cx, el.text || "", x, y, W * 0.7, sz * 1.25);
+      }
+
+      function drawImageEl(el) {
+        var fr = el.friend;
+        if (!fr || !fr.src) return;
+        var img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = function () {
+          var w = 96 * (W / 100);
+          var h = w;
+          var x = (el.x / 100) * W;
+          var y = (el.y / 100) * H;
+          var r = 12;
+          cx.save();
+          cx.beginPath();
+          cx.moveTo(x + r, y);
+          cx.lineTo(x + w - r, y);
+          cx.arcTo(x + w, y, x + w, y + r, r);
+          cx.lineTo(x + w, y + h - r);
+          cx.arcTo(x + w, y + h, x + w - r, y + h, r);
+          cx.lineTo(x + r, y + h);
+          cx.arcTo(x, y + h, x, y + h - r, r);
+          cx.lineTo(x, y + r);
+          cx.arcTo(x, y, x + r, y, r);
+          cx.clip();
+          cx.drawImage(img, x, y, w, h);
+          cx.restore();
+          pending--;
+          if (pending <= 0) finish();
+        };
+        img.onerror = function () {
+          var w = 96 * (W / 100);
+          var x = (el.x / 100) * W;
+          var y = (el.y / 100) * H;
+          cx.fillStyle = fr.color || "#ccc";
+          cx.fillRect(x, y, w, w);
+          cx.fillStyle = "#fff";
+          cx.font = "bold 28px sans-serif";
+          cx.textAlign = "center";
+          cx.textBaseline = "middle";
+          cx.fillText(fr.emoji || "✧", x + w / 2, y + w / 2);
+          cx.textAlign = "start";
+          pending--;
+          if (pending <= 0) finish();
+        };
+        img.src = fr.src;
+      }
+
+      /* Count image elements that need loading */
+      for (var i = 0; i < elems.length; i++) {
+        if (elems[i].type === "image" && elems[i].friend && elems[i].friend.src) pending++;
+      }
+
+      /* Draw text immediately, queue images */
+      for (var j = 0; j < elems.length; j++) {
+        if (elems[j].type === "text") drawText(elems[j]);
+        else if (elems[j].type === "image") drawImageEl(elems[j]);
+      }
+
+      /* If no images to load, finish now */
+      if (pending <= 0) finish();
+    } catch (e) {
+      console.warn("[canva] captureCanvas error:", e);
+      cb(null);
+    }
+  }
+
+  function wrapText(cx, text, x, y, maxW, lineH) {
+    var words = text.split(/\s+/);
+    var line = "";
+    for (var i = 0; i < words.length; i++) {
+      var test = line + (line ? " " : "") + words[i];
+      if (cx.measureText(test).width > maxW && line) {
+        cx.fillText(line, x, y);
+        line = words[i];
+        y += lineH;
+      } else {
+        line = test;
+      }
+    }
+    if (line) cx.fillText(line, x, y);
   }
 
   /* ---------------- Register with AppBrowser ---------------- */

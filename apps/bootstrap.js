@@ -363,6 +363,176 @@
     hintNotificationEl.addEventListener("click", cancelHint);
   }
 
+
+  /* ---------------- Desktop gift file + drag-to-Discord ----------------
+   * When the canva gift is saved, a file icon appears on the desktop.
+   * The user must drag it to the Discord dock icon to send it to Sofia.
+   * After that, Sofia reacts in DM and posts in Taskforce #rule.
+   */
+  function spawnGiftFileOnDesktop(giftImage) {
+    /* Remove any existing gift file first */
+    var existing = desktop.querySelector(".desktop-file");
+    if (existing) existing.remove();
+
+    /* Close/minimize Chrome so the desktop file is visible */
+    var chromeWin = document.getElementById("chrome-window");
+    if (chromeWin) chromeWin.classList.add("minimized");
+
+    var file = document.createElement("div");
+    file.className = "desktop-file";
+    file.id = "giftFile";
+
+    var thumbHTML = giftImage
+      ? '<img src="' + giftImage + '" alt="gift" />'
+      : '<span style="font-size:24px">🎁</span>';
+
+    file.innerHTML =
+      '<div class="file-pulse"></div>' +
+      '<div class="desktop-file-thumb">' + thumbHTML + '</div>' +
+      '<div class="desktop-file-label">Stray's Gift.png</div>';
+
+    /* Position: center-right of desktop, above dock */
+    var dRect = desktop.getBoundingClientRect();
+    file.style.left = (dRect.width / 2 + 60) + "px";
+    file.style.top  = (dRect.height / 2 - 60) + "px";
+    desktop.appendChild(file);
+
+    /* Make it draggable */
+    var dragging = false;
+    var offsetX, offsetY;
+    var discordIcon = document.querySelector('.dock-icon[data-app="discord"]');
+
+    file.addEventListener("pointerdown", function (e) {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      dragging = true;
+      file.classList.add("dragging");
+      var fRect = file.getBoundingClientRect();
+      offsetX = e.clientX - fRect.left;
+      offsetY = e.clientY - fRect.top;
+      try { file.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+
+    document.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      var x = e.clientX - dRect.left - offsetX;
+      var y = e.clientY - dRect.top - offsetY;
+      file.style.left = x + "px";
+      file.style.top  = y + "px";
+
+      /* Highlight Discord dock icon when hovering */
+      if (discordIcon) {
+        var iRect = discordIcon.getBoundingClientRect();
+        var over = e.clientX >= iRect.left && e.clientX <= iRect.right &&
+                   e.clientY >= iRect.top  && e.clientY <= iRect.bottom;
+        discordIcon.classList.toggle("drop-target", over);
+      }
+    });
+
+    document.addEventListener("pointerup", function (e) {
+      if (!dragging) return;
+      dragging = false;
+      file.classList.remove("dragging");
+
+      /* Check if dropped on Discord dock icon */
+      if (discordIcon) {
+        discordIcon.classList.remove("drop-target");
+        var iRect = discordIcon.getBoundingClientRect();
+        var onDiscord = e.clientX >= iRect.left && e.clientX <= iRect.right &&
+                        e.clientY >= iRect.top  && e.clientY <= iRect.bottom;
+        if (onDiscord) {
+          file.remove();
+          sendGiftToSofia(giftImage);
+          return;
+        }
+      }
+      /* If not dropped on Discord, snap back and show hint */
+      showToast("Drag the gift file onto the Discord icon in the dock!");
+    });
+
+    /* Also allow clicking the file as a shortcut (for accessibility) */
+    file.addEventListener("dblclick", function (e) {
+      e.preventDefault();
+      file.remove();
+      sendGiftToSofia(giftImage);
+    });
+
+    /* Hint after 10s if file still sitting there */
+    scheduleHint(10000, {
+      title: "Send your gift! 📨",
+      subtitle: "Drag to Discord",
+      text: "Drag the gift file from the desktop onto the Discord icon in the dock to send it to Sofia!",
+      icon: "👇"
+    });
+  }
+
+  function sendGiftToSofia(giftImage) {
+    cancelHint();
+    showToast("Sending gift to Sofia...");
+
+    var ad = window.AppDiscord;
+    if (!ad || !ad.data) return;
+    var time = "Today at " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+    /* 1. Push Stray's message with the image into Sofia's DM */
+    var sofiaData = ad.data.discordMessageData.sofia;
+    if (!sofiaData) sofiaData = ad.data.discordMessageData.sofia = [];
+    sofiaData.push({
+      author: "Stray", color: "#5865f2", avImg: "static/stray.webp",
+      time: time, text: "look what i made 🎁", image: giftImage
+    });
+
+    /* 2. Open Discord to Sofia DM */
+    openApp("discord");
+    var dw = document.getElementById("discord-window");
+    if (dw && dw.appDiscord) {
+      dw.appDiscord.openDM("sofia");
+    }
+
+    /* 3. After 3s: Sofia replies with thanks */
+    setTimeout(function () {
+      sofiaData.push({
+        author: "✨ Sofia ✨", color: "#9b59b6", avImg: "static/sofia.webp",
+        time: "Today at " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+        text: "NO WAYYYY 😭😭😭 THIS IS SO CUTE STRAY IM ACTUALLY CRYING"
+      });
+      if (dw && dw.appDiscord) {
+        dw.appDiscord.refresh("sofia");
+        dw.appDiscord.markChannelUnread("sofia");
+        dw.appDiscord.refreshDockBadge();
+      }
+      showToast("Sofia loved it!");
+
+      /* 4. After 4s more: Sofia posts in Taskforce #rule with the image */
+      setTimeout(function () {
+        var ruleData = ad.data.discordMessageData.rule;
+        if (!ruleData) ruleData = ad.data.discordMessageData.rule = [];
+        ruleData.push({
+          author: "✨ Sofia ✨", color: "#9b59b6", avImg: "static/sofia.webp",
+          time: "Today at " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+          text: "HAPPY BIRTHDAY STRAY!! 🎂🎉 look what stray made for himself!! 💖💖",
+          image: giftImage
+        });
+        if (dw && dw.appDiscord) {
+          dw.appDiscord.refresh("rule");
+          dw.appDiscord.markChannelUnread("rule");
+          dw.appDiscord.refreshDockBadge();
+        }
+
+        /* Bounce dock + notification to check #rule */
+        if (window.AppDiscordPanic) window.AppDiscordPanic.bounceDock();
+        showBirthdayNotification();
+
+        scheduleHint(4000, {
+          title: "Check #rule! 🎉",
+          subtitle: "Taskforce",
+          text: "Sofia just posted your gift in Taskforce #rule! Click Discord to see it.",
+          icon: "✨"
+        });
+      }, 4000);
+    }, 3000);
+  }
+
   /* ---------------- Walkthrough orchestrator ----------------
    * Step machine. Each step has:
    *   - id       — string
@@ -400,44 +570,14 @@
       onEvent: "walkthrough:discord-complete"
     },
     "gift-complete": {
-      run: function () {
-        /* Fired by apps/pages/canva.js when Stray clicks "Save & Finish". */
-        showToast("Gift saved! Sofia just saw it...");
+      run: function (detail) {
+        /* Fired by apps/pages/canva.js when Stray clicks "Save & Finish".
+         * New flow: spawn a gift file on desktop -> user drags to Discord
+         * dock -> sends image to Sofia DM -> Sofia thanks -> posts in #rule. */
         cancelHint();
-
-        /* Push a new message into Sofia's DM so when user re-opens Discord
-         * they see Sofia's reaction right after the scripted conversation. */
-        try {
-          if (window.AppDiscord && window.AppDiscord.data && window.AppDiscord.data.discordMessageData) {
-            var sofiaData = window.AppDiscord.data.discordMessageData.sofia;
-            if (!sofiaData) sofiaData = window.AppDiscord.data.discordMessageData.sofia = [];
-            sofiaData.push({
-              author: "Sofia",
-              color: "#9b59b6",
-              time: "Today at " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
-              text: "STRAY I SAW THE GIFT IM LITERALLY CRYING 😭😭 happy birthday king u made urself the perfect one 💖",
-              avImg: "static/sofia.webp"
-            });
-            var dw = document.getElementById("discord-window");
-            if (dw && dw.appDiscord) {
-              dw.appDiscord.refresh("sofia");
-              dw.appDiscord.refreshDockBadge();
-            }
-          }
-        } catch (e) { console.warn("[gift-complete] could not push Sofia reply:", e); }
-
-        /* Schedule a hint that points back to Discord. */
-        scheduleHint(3500, {
-          title: "From Sofia 💖",
-          subtitle: "Direct Message",
-          text: "STRAY I SAW THE GIFT I'M CRYING 😭 come back to Discord!",
-          icon: "💌"
-        });
-
-        /* Bounce the Discord dock icon for extra attention. */
-        if (window.AppDiscordPanic && window.AppDiscordPanic.bounceDock) {
-          window.AppDiscordPanic.bounceDock();
-        }
+        var giftImage = (detail && detail.image) || null;
+        showToast("Gift saved! Drag the file to Discord to send it to Sofia.");
+        spawnGiftFileOnDesktop(giftImage);
       },
       onEvent: "walkthrough:gift-complete"
     }
@@ -445,9 +585,9 @@
 
   function bindWalkthroughStep(stepId, evName) {
     if (!evName) return;
-    window.AppCommon.on(evName, function () {
+    window.AppCommon.on(evName, function (detail) {
       var step = STEPS[stepId];
-      if (step && typeof step.run === "function") step.run();
+      if (step && typeof step.run === "function") step.run(detail);
     }, { once: false });
   }
   Object.keys(STEPS).forEach(function (k) {
