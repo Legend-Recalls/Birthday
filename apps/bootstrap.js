@@ -413,7 +413,7 @@
       try { file.setPointerCapture(e.pointerId); } catch (_) {}
     });
 
-    document.addEventListener("pointermove", function (e) {
+    function onMove(e) {
       if (!dragging) return;
       var x = e.clientX - dRect.left - offsetX;
       var y = e.clientY - dRect.top - offsetY;
@@ -427,12 +427,13 @@
                    e.clientY >= iRect.top  && e.clientY <= iRect.bottom;
         discordIcon.classList.toggle("drop-target", over);
       }
-    });
+    }
 
-    document.addEventListener("pointerup", function (e) {
+    function onUp(e) {
       if (!dragging) return;
       dragging = false;
       file.classList.remove("dragging");
+      cleanup();
 
       /* Check if dropped on Discord dock icon */
       if (discordIcon) {
@@ -448,11 +449,20 @@
       }
       /* If not dropped on Discord, snap back and show hint */
       showToast("Drag the gift file onto the Discord icon in the dock!");
-    });
+    }
 
-    /* Also allow clicking the file as a shortcut (for accessibility) */
+    function cleanup() {
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+    }
+
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+
+    /* Also allow double-click as shortcut (for accessibility) */
     file.addEventListener("dblclick", function (e) {
       e.preventDefault();
+      cleanup();
       file.remove();
       sendGiftToSofia(giftImage);
     });
@@ -484,9 +494,9 @@
 
     /* 2. Open Discord to Sofia DM */
     openApp("discord");
-    var dw = document.getElementById("discord-window");
-    if (dw && dw.appDiscord) {
-      dw.appDiscord.openDM("sofia");
+    var dw1 = document.getElementById("discord-window");
+    if (dw1 && dw1.appDiscord) {
+      dw1.appDiscord.openDM("sofia");
     }
 
     /* 3. After 3s: Sofia replies with thanks */
@@ -496,10 +506,11 @@
         time: "Today at " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
         text: "NO WAYYYY 😭😭😭 THIS IS SO CUTE STRAY IM ACTUALLY CRYING"
       });
-      if (dw && dw.appDiscord) {
-        dw.appDiscord.refresh("sofia");
-        dw.appDiscord.markChannelUnread("sofia");
-        dw.appDiscord.refreshDockBadge();
+      var dw2 = document.getElementById("discord-window");
+      if (dw2 && dw2.appDiscord) {
+        dw2.appDiscord.refresh("sofia");
+        dw2.appDiscord.markChannelUnread("sofia");
+        dw2.appDiscord.refreshDockBadge();
       }
       showToast("Sofia loved it!");
 
@@ -513,14 +524,22 @@
           text: "HAPPY BIRTHDAY STRAY!! 🎂🎉 look what stray made for himself!! 💖💖",
           image: giftImage
         });
-        if (dw && dw.appDiscord) {
-          dw.appDiscord.refresh("rule");
-          dw.appDiscord.markChannelUnread("rule");
-          dw.appDiscord.refreshDockBadge();
+        var dw3 = document.getElementById("discord-window");
+        if (dw3 && dw3.appDiscord) {
+          dw3.appDiscord.refresh("rule");
+          dw3.appDiscord.markChannelUnread("rule");
+          dw3.appDiscord.refreshDockBadge();
         }
 
-        /* Bounce dock + notification to check #rule */
+        /* Bounce dock + update notification text for Sofia's post */
         if (window.AppDiscordPanic) window.AppDiscordPanic.bounceDock();
+        var bdayEl = document.getElementById("birthdayNotification");
+        if (bdayEl) {
+          var bSub = bdayEl.querySelector(".notification-subtitle");
+          var bText = bdayEl.querySelector(".notification-text");
+          if (bSub) bSub.textContent = "Taskforce • #rule";
+          if (bText) bText.textContent = "Sofia just posted your birthday gift in #rule!";
+        }
         showBirthdayNotification();
 
         scheduleHint(4000, {
