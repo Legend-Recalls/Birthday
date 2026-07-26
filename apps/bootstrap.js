@@ -31,6 +31,7 @@
   var activeApp = "Finder";
   var toastTimer = null;
   var openApps = new Set();
+  var discordFirstOpen = false;
 
   var menuLists = {
     Finder:  ["File", "Edit", "View", "Go", "Window", "Help"],
@@ -219,10 +220,13 @@
       openApp("chrome");
     } else if (app === "discord") {
       openApp("discord");
-      /* Auto-jump to rule on first open (the birthday rule). */
-      var win = document.getElementById("discord-window");
-      if (win && typeof win.selectBirthdayRule === "function") {
-        win.selectBirthdayRule();
+      /* Auto-jump to #rule only on first open (the birthday rule). After that, resume last state. */
+      if (!discordFirstOpen) {
+        discordFirstOpen = true;
+        var win = document.getElementById("discord-window");
+        if (win && typeof win.selectBirthdayRule === "function") {
+          win.selectBirthdayRule();
+        }
       }
     } else {
       showToast(cap(app) + " is not part of this mock.");
