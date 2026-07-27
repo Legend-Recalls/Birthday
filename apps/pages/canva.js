@@ -39,9 +39,21 @@
       xPct: 49.07, yPct: 57.75, wPct: 2.45,  hPct: 12.18, z: 7 }
   ];
 
+  /* ---------------- Character assets (friend photos from /static) ---------------- */
+  /* These are the user-facing "characters" Stray adds via the Mac-style file
+   * picker, one per tutorial step before the gold place steps begin. */
+  var CHARACTER_ASSETS = [
+    { id: "sofia",   src: "static/sofia.webp",   name: "Sofia",   xPct: 22, yPct: 22, wPct: 18, hPct: 26, z: 11, kind: "character" },
+    { id: "hanaria", src: "static/hanaria.webp", name: "Hanaria", xPct: 60, yPct: 22, wPct: 18, hPct: 26, z: 12, kind: "character" },
+    { id: "lells",   src: "static/lells.webp",   name: "Lells",   xPct: 28, yPct: 60, wPct: 16, hPct: 24, z: 13, kind: "character" },
+    { id: "stray",   src: "static/stray.webp",   name: "Stray",   xPct: 56, yPct: 60, wPct: 16, hPct: 24, z: 14, kind: "character" }
+  ];
+  var CHARACTER_BY_ID = {};
+  CHARACTER_ASSETS.forEach(function (c) { CHARACTER_BY_ID[c.id] = c; });
+
   /* ---------------- Tutorial steps (generated from draggables) ---------------- */
-  /* 9 steps total: one per draggable asset + title + save. Each drop validates
-   * the current step's bucket, then advances to the next bucket. */
+  /* 12 steps total: bg + 8 draggables + title + ai + save. Each step validates
+   * the current step's bucket via validateStep(), then advances to the next. */
   var STEPS = [];
   /* Two generic Add Image steps for steps 10 and 11 (id "image-1", "image-2").
    * Cherry-picked onto master as an isolated change; bg step and other
@@ -73,8 +85,8 @@
   STEPS.push({
     id: "title",
     kind: "title",
-    selector: ".canva-stage-element.text",
-    tip: "Double-click the title to edit it - put anything you want!"
+    selector: "[data-canva-act='addtext']",
+    tip: "Press the 🅰 Add Text button to drop a title onto your gift - then double-click the text to edit it!"
   });
   STEPS.push({
     id: "ai",
@@ -197,6 +209,39 @@
       ".canva-tray-item img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }",
       ".canva-tray-label { font-size: 10px; color: #555; text-align: center; max-width: 70px; line-height: 1.3; font-weight: 600; }",
       ".canva-tray-done { font-size: 13px; color: #15803d; font-weight: 800; padding: 8px; text-align: center; }",
+
+      /* ---------------- Mac-style file picker ---------------- */
+      ".mac-picker { width: 100%; max-width: 580px; background: #fff; border-radius: 10px; overflow: hidden; font-family: -apple-system, 'Segoe UI', sans-serif; color: #1a1a1a; box-shadow: 0 30px 80px rgba(0,0,0,.5); display: flex; flex-direction: column; }",
+      ".mac-titlebar { position: relative; height: 30px; background: linear-gradient(180deg, #e6e6e9, #d6d6da); display: flex; align-items: center; padding: 0 12px; border-bottom: 1px solid #c8c8cd; flex: 0 0 auto; }",
+      ".mac-traffic-lights { display: flex; gap: 8px; }",
+      ".mac-tl { width: 12px; height: 12px; border-radius: 50%; display: block; box-shadow: inset 0 0 0 1px rgba(0,0,0,.18); }",
+      ".mac-tl-close { background: #ff5f57; }",
+      ".mac-tl-min   { background: #febc2e; }",
+      ".mac-tl-max   { background: #28c840; }",
+      ".mac-title { position: absolute; left: 0; right: 0; top: 0; height: 30px; line-height: 30px; text-align: center; font-size: 13px; font-weight: 600; color: #4a4a4f; pointer-events: none; }",
+      ".mac-toolbar { height: 30px; background: linear-gradient(180deg, #f6f6f7, #ebebed); border-bottom: 1px solid #c8c8cd; display: flex; align-items: center; padding: 0 12px; font-size: 12px; color: #555; gap: 10px; flex: 0 0 auto; }",
+      ".mac-toolbar .mac-toolbar-title { font-weight: 600; color: #1a1a1a; flex: 1; text-align: center; }",
+      ".mac-body { display: flex; flex: 1 1 auto; min-height: 250px; overflow: hidden; }",
+      ".mac-sidebar { width: 160px; background: #ebebed; border-right: 1px solid #c8c8cd; padding: 8px 0; font-size: 12px; flex: 0 0 auto; }",
+      ".mac-sb-section { padding: 8px 14px 4px; font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .04em; }",
+      ".mac-sb-item { padding: 4px 14px 4px 24px; cursor: default; }",
+      ".mac-sb-item.mac-active { background: #c8c8cd; }",
+      ".mac-grid { flex: 1 1 auto; padding: 18px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; align-content: start; }",
+      ".mac-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; padding: 6px; border-radius: 8px; border: 2px solid transparent; transition: all .15s ease; user-select: none; }",
+      ".mac-tile:hover:not(.mac-disabled) { background: rgba(0,0,0,.04); }",
+      ".mac-tile.mac-selected { border-color: #0a84ff; background: rgba(10,132,255,.08); }",
+      ".mac-tile.mac-disabled { opacity: 0.35; filter: grayscale(0.6); cursor: not-allowed; }",
+      ".mac-thumb { width: 84px; height: 84px; border-radius: 8px; overflow: hidden; background: #fafafa; display: grid; place-items: center; box-shadow: 0 1px 3px rgba(0,0,0,.08); }",
+      ".mac-thumb img { width: 100%; height: 100%; object-fit: cover; }",
+      ".mac-label { font-size: 11px; text-align: center; max-width: 92px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }",
+      ".mac-footer { height: 40px; background: linear-gradient(180deg, #ececec, #d6d6da); border-top: 1px solid #c8c8cd; display: flex; align-items: center; padding: 0 14px; gap: 8px; flex: 0 0 auto; }",
+      ".mac-status { font-size: 11px; color: #555; margin-right: auto; }",
+      ".mac-btn-cancel, .mac-btn-add { border: 0; border-radius: 5px; padding: 5px 16px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .15s ease; }",
+      ".mac-btn-cancel { background: #fff; border: 1px solid #c8c8cd; color: #444; }",
+      ".mac-btn-cancel:hover { background: #f4f4f6; }",
+      ".mac-btn-add { background: linear-gradient(180deg, #4a90ff, #0a6ee0); color: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.15); }",
+      ".mac-btn-add:hover:not(:disabled) { filter: brightness(1.05); }",
+      ".mac-btn-add:disabled { opacity: 0.4; cursor: default; }",
       "</style>"
     ].join("");
   }
@@ -523,8 +568,12 @@
     var statusEl = overlay.querySelector("#canvaAiStatus");
     var thoughts = [
       "Analyzing layout…",
+      "Studying color harmony…",
       "Rebalancing composition…",
+      "Aligning textures…",
       "Polishing colors & typography…",
+      "Adjusting spacing…",
+      "Sharpening details…",
       "Adding finishing touches…",
       "Beautifying your gift…",
       "✨ One last sparkle…"
@@ -532,27 +581,39 @@
     var pct = 0, i = 0, totalMs = 0;
 
     function tick() {
-      totalMs += 110;
-      pct = Math.min(100, Math.round((totalMs / 2400) * 100));
+      totalMs += 260;
+      pct = Math.min(100, Math.round((totalMs / 7800) * 100));
       fillEl.style.width = pct + "%";
       if (i < thoughts.length && pct >= ((i + 1) * (100 / thoughts.length) | 0)) {
         statusEl.textContent = thoughts[i++];
       }
       if (pct < 100) {
-        setTimeout(tick, 110);
+        setTimeout(tick, 260);
       } else {
         statusEl.textContent = "✨ Done — revealing final design";
         requestAnimationFrame(function () { reveal.style.opacity = "1"; });
         setTimeout(function () {
           overlay.remove();
+          /* Wipe all user-placed elements and the empty-stage hint so the
+           * polished final.png shows on a completely clean canvas. */
+          var pageElAfter = root.querySelector("#canvaPage");
+          if (pageElAfter) {
+            var stageEls = pageElAfter.querySelectorAll(".canva-stage-element");
+            for (var k = 0; k < stageEls.length; k++) stageEls[k].remove();
+            var emptyHint = pageElAfter.querySelector("#canvaEmpty");
+            if (emptyHint) emptyHint.style.display = "none";
+          }
+          state.elements = [];
+          state.placed = [];
+
           state.aiBusy = false;
           state.aiDone = true;
           if (btn) { btn.classList.remove("busy"); btn.style.pointerEvents = ""; }
           advanceStep(root);
-        }, 950);
+        }, 1800);
       }
     }
-    setTimeout(tick, 120);
+    setTimeout(tick, 200);
   }
 
 /* ---------------- Wiring ---------------- */
@@ -565,11 +626,16 @@
         e.stopPropagation();
         state.bg = sw.dataset.bg;
         state.bgChosen = true;
-        /* Only change background-color — keep the wallpaper background-image intact */
+        /* Drop the wallpaper so the user's swatch color is actually visible
+         * (background-image sits on top of background-color in CSS, so the
+         * default wallpaper would otherwise mask the picked swatch). */
+        pageEl.style.backgroundImage = "none";
         pageEl.style.backgroundColor = state.bg;
         root.querySelectorAll("#canvaBgGrid .canva-swatch").forEach(function (s) { s.classList.remove("selected"); });
         sw.classList.add("selected");
-        /* Background changes are visual-only — no step advancement needed */
+        /* Validate the bg step and advance so the user moves straight to the
+         * first draggable on a clean, swatch-colored canvas. */
+        if (STEPS[state.step].id === "bg") advanceStep(root);
       });
     });
 
@@ -808,45 +874,114 @@
   /* ---------------- Picker modal ---------------- */
   function openPicker(root) {
     var pageEl = root.querySelector("#canvaPage");
+
+    /* Tutorial mode: if the current step is a character step, force the user
+     * to add only that character. Other tiles are visually disabled. */
+    var currentStep = STEPS[state.step];
+    var tutorialChar = (currentStep && currentStep.kind === "character") ? currentStep.assetId : null;
+
     var mask = document.createElement("div");
     mask.className = "canva-modal-mask";
+    mask.style.zIndex = "80"; /* above the coach-mark mask (z-index 60) */
+
+    var titleText = tutorialChar
+      ? "Add " + escapeHTML(CHARACTER_BY_ID[tutorialChar].name) + "’s Photo"
+      : "Pictures";
+    var statusText = tutorialChar
+      ? "Step-by-step: pick " + escapeHTML(CHARACTER_BY_ID[tutorialChar].name) + " and press Add"
+      : CHARACTER_ASSETS.length + " items";
 
     var html = [
-      '<div class="canva-modal">',
-      '  <h3>Pick a gold element to add</h3>',
-      '  <div class="picker-grid">'
+      '<div class="mac-picker">',
+      '  <div class="mac-titlebar">',
+      '    <div class="mac-traffic-lights">',
+      '      <span class="mac-tl mac-tl-close"></span>',
+      '      <span class="mac-tl mac-tl-min"></span>',
+      '      <span class="mac-tl mac-tl-max"></span>',
+      '    </div>',
+      '    <div class="mac-title">' + titleText + '</div>',
+      '  </div>',
+      '  <div class="mac-toolbar">',
+      '    <span class="mac-nav">◀ ▶</span>',
+      '    <div class="mac-toolbar-title">Pictures › Friends</div>',
+      '    <span class="mac-views">▦ ▤</span>',
+      '  </div>',
+      '  <div class="mac-body">',
+      '    <div class="mac-sidebar">',
+      '      <div class="mac-sb-section">Favorites</div>',
+      '      <div class="mac-sb-item">📷 Pictures</div>',
+      '      <div class="mac-sb-item">☁ iCloud</div>',
+      '      <div class="mac-sb-item">🕐 Recent</div>',
+      '      <div class="mac-sb-section">Tags</div>',
+      '      <div class="mac-sb-item mac-active">⭐ Friends</div>',
+      '    </div>',
+      '    <div class="mac-grid">'
     ];
-    DRAGGABLE_ASSETS.forEach(function (a) {
-      var avatarInner = a.src
-        ? '<img src="' + a.src + '" alt="' + escapeHTML(a.name) + '" style="width:100%;height:100%;object-fit:cover;" />'
-        : escapeHTML(a.emoji || "✨");
-      var avatarStyle = a.src ? "" : ' style="background:linear-gradient(135deg,' + a.color + ',#ec4899)"';
+
+    CHARACTER_ASSETS.forEach(function (c) {
+      var enabled = !tutorialChar || tutorialChar === c.id;
       html.push(
-        '<div class="picker-tile" data-asset-id="' + a.id + '">' +
-          '<div class="picker-avatar"' + avatarStyle + '>' + avatarInner + '</div>' +
-          '<div class="picker-name">' + escapeHTML(a.name) + '</div>' +
+        '<div class="mac-tile' + (enabled ? '' : ' mac-disabled') + '" data-char-id="' + c.id + '">' +
+          '<div class="mac-thumb"><img src="' + c.src + '" alt="' + escapeHTML(c.name) + '" /></div>' +
+          '<div class="mac-label">' + escapeHTML(c.name) + '</div>' +
         '</div>'
       );
     });
-    html.push('  </div>', '  <button class="cancel">Cancel</button>', '</div>');
+
+    html.push(
+      '    </div>',
+      '  </div>',
+      '  <div class="mac-footer">',
+      '    <span class="mac-status">' + statusText + '</span>',
+      '    <button class="mac-btn-cancel">Cancel</button>',
+      '    <button class="mac-btn-add" disabled>Add</button>',
+      '  </div>',
+      '</div>'
+    );
     mask.innerHTML = html.join("");
     pageEl.appendChild(mask);
 
-    mask.addEventListener("click", function (e) {
-      if (e.target.classList.contains("canva-modal-mask") || e.target.classList.contains("cancel")) {
+    var pickerEl = mask.querySelector(".mac-picker");
+    var selectedId = null;
+
+    function addSelected() {
+      if (!selectedId) return;
+      var asset = CHARACTER_BY_ID[selectedId];
+      if (!asset) return;
+      mask.remove();
+      addImageElement(root, asset);
+      if (currentStep && currentStep.kind === "character") {
+        advanceStep(root);
+      }
+    }
+
+    pickerEl.addEventListener("click", function (e) {
+      if (e.target.classList.contains("mac-tl-close") ||
+          e.target.classList.contains("mac-btn-cancel") ||
+          (e.target.classList && e.target.classList.contains("canva-modal-mask"))) {
         mask.remove();
         return;
       }
-      var tile = e.target.closest("[data-asset-id]");
-      if (tile) {
-        var asset = DRAGGABLE_ASSETS.find(function (a) { return a.id === tile.dataset.assetId; });
-        mask.remove();
-        if (asset) {
-          addImageElement(root, asset);
-          /* Image added — visual only */
-        }
-      }
+      var tile = e.target.closest("[data-char-id]");
+      if (!tile || tile.classList.contains("mac-disabled")) return;
+      pickerEl.querySelectorAll(".mac-tile").forEach(function (t) { t.classList.remove("mac-selected"); });
+      tile.classList.add("mac-selected");
+      selectedId = tile.dataset.charId;
+      var b = pickerEl.querySelector(".mac-btn-add");
+      if (b) b.disabled = false;
     });
+
+    pickerEl.addEventListener("dblclick", function (e) {
+      var tile = e.target.closest("[data-char-id]");
+      if (!tile || tile.classList.contains("mac-disabled")) return;
+      if (!selectedId) {
+        tile.click();
+      }
+      addSelected();
+    });
+
+    var addBtn = pickerEl.querySelector(".mac-btn-add");
+    if (addBtn) addBtn.addEventListener("click", addSelected);
   }
 
   /* ---------------- Tutorial step controller ---------------- */
@@ -880,8 +1015,16 @@
       }
       return false;
     }
+    if (id === "bg")    return !!state.bgChosen;
+    /* "character-sofia" etc. — require that specific character to be added. */
+    if (id.indexOf("character-") === 0) {
+      var wantId = id.slice("character-".length);
+      return state.elements.some(function (e) {
+        return e.type === "image" && e.asset && (e.asset.id === wantId);
+      });
+    }
     if (id === "title") return state.elements.some(function (e) { return e.type === "text"; });
-    if (id === "ai")   return !!state.aiDone;
+    if (id === "ai")    return !!state.aiDone;
     if (id === "save")  return true;
     return false;
   }
@@ -921,6 +1064,34 @@
     requestAnimationFrame(place);
 
     mask._placeFn = place;
+
+    /* Auto-trigger the polish on the AI step after a short beat so the spotlight
+     * has a chance to land. The user lands on this step, sees the spotlight and
+     * tip for ~1 s, then the polish overlay fires automatically. This makes the
+     * AI step impossible to silently bypass even if the overlay was previously
+     * missed / off-screen / on a stale page. */
+    if (step.id === "ai" && !state.aiDone && !state.aiBusy) {
+      setTimeout(function () {
+        if (STEPS[state.step].id !== "ai") return;
+        if (state.aiBusy || state.aiDone) return;
+        var aiBtn = root.querySelector('[data-canva-act="ai"]');
+        if (aiBtn) runCanvaAI(root, aiBtn);
+      }, 1000);
+    }
+
+    /* Auto-open the Mac-style picker on every character step. Each step
+     * matches exactly one character id; the picker disables the other tiles
+     * so the user has to add the requested friend to advance. */
+    if (step.kind === "character") {
+      setTimeout(function () {
+        var cur = STEPS[state.step];
+        if (!cur || cur.kind !== "character") return;
+        if (cur.id !== step.id) return;
+        var open = root.querySelector(".canva-modal-mask");
+        if (open) return; /* already open */
+        openPicker(root);
+      }, 700);
+    }
   }
 
   function stepTitle() {
@@ -1018,6 +1189,20 @@
       var c = document.createElement("canvas");
       c.width = W; c.height = H;
       var cx = c.getContext("2d");
+
+      /* If Canva AI polished the gift, capture final.png directly instead of
+       * rebuilding from state.elements (which was wiped by runCanvaAI). */
+      if (state.aiDone) {
+        var finalImg = new Image();
+        finalImg.crossOrigin = "anonymous";
+        finalImg.onload = function () {
+          try { cx.drawImage(finalImg, 0, 0, W, H); cb(c.toDataURL("image/png")); }
+          catch (e) { cb(null); }
+        };
+        finalImg.onerror = function () { cb(null); };
+        finalImg.src = "static/final.png";
+        return;
+      }
 
       /* Background */
       cx.fillStyle = state.bg || "#ffffff";
