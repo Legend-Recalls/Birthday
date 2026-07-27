@@ -10,19 +10,18 @@ window.AppSofia = (function () {
    * reputation is saved. Browses opens here as the next "browser step".
    */
   var SOFIA_SCRIPT = [
-    { user: "sofia? u good?",                   sofia: "OMG finally 😭 yea im fine",                                            delay: 900  },
-    { user: "why were u spamming HELP",        sofia: "BC U WERENT ANSWERING LMAO",                                             delay: 1000 },
-    { user: "lol i was busy",                   sofia: "ON UR BIRTHDAY?? 💀 get ur priorities straight",                         delay: 1000 },
-    { user: "ok fair enough",                   sofia: "anyway... so we kinda forgot to get u a gift 😅",                        delay: 1300 },
-    { user: "...",                              sofia: "WAIT DONT BE MAD PLS",                                                   delay: 800  },
-    { user: "im not mad lol",                   sofia: "we made u this whole thing instead — fake mac, fake chrome, fake discord — all for u 🎉", delay: 2000 },
-    { user: "thats actually insane lol",        sofia: "HAPPY BIRTHDAY THO 🎂✨ ur welcome",                                 delay: 1100 },
-    { user: "ok wait this is actually so cool", sofia: "ikr 😌 but also... we kinda need u to make ur own gift now lol",          delay: 1500 },
-    { user: "wdym",                             sofia: "we forgot urs so now its on u 💀 go make something on a browser",       delay: 1500 },
-    { user: "yall are actually useless lol",    sofia: "PLEASEEE our reputation is on the line 😭",                               delay: 1500 },
-    { user: "fine whatever",                    sofia: "THANK U 🙏 chrome is right there. make us proud bestie",                delay: 1500 },
-    { user: "ur lucky ur my friend",           sofia: "ik 😌 happy birthday ok byeee",                                          delay: 1000 },
-    { user: "bye sofia",                        sofia: null,                                                                    delay: 600  }
+    { user: "sofia? u good?", sofia: "finally 😭", delay: 900 },
+    { user: "why were u spamming", sofia: "BC U WERENT ANSWERING LMAO", delay: 1000 },
+    { user: "ok fair enough", sofia: "anyway... so we kinda forgot to get u a gift 😅", delay: 1300 },
+    { user: "...", sofia: "WAIT DONT BE MAD PLS", delay: 800 },
+    { user: "im not mad lol", sofia: "we made u this whole thing BUT suraya ate it all...", delay: 2000 },
+    { user: "insane", sofia: "HAPPY BIRTHDAY THO 🎂✨", delay: 1100 },
+    { user: "thanks", sofia: "ikr 😌 but also... we kinda need u to make ur own gift now lol", delay: 1500 },
+    { user: "wdym", sofia: "we forgot urs so now its on u 💀 go make something on a browser", delay: 1500 },
+    { user: "yall are actually useless lol", sofia: "PLEASEEE our reputation is on the line 😭", delay: 1500 },
+    { user: "fine whatever", sofia: "THANK U 🙏 chrome is right there. make us proud bestie", delay: 1500 },
+    { user: "ur lucky ur my friend", sofia: "ik 😌 happy birthday ok byeee", delay: 1000 },
+    { user: "bye sofia", sofia: null, delay: 600 }
   ];
 
   var ctx = null;          /* install(ctx) sets this */
@@ -57,9 +56,9 @@ window.AppSofia = (function () {
     if (atEnd()) return;
     var isChar = e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
     var isEdit = e.key === "Backspace" || e.key === "Delete" ||
-                 e.key === "ArrowLeft" || e.key === "ArrowRight" ||
-                 e.key === "Home" || e.key === "End" ||
-                 e.key === "ArrowUp" || e.key === "ArrowDown";
+      e.key === "ArrowLeft" || e.key === "ArrowRight" ||
+      e.key === "Home" || e.key === "End" ||
+      e.key === "ArrowUp" || e.key === "ArrowDown";
     if (isChar || isEdit) {
       e.preventDefault();
       e.stopImmediatePropagation();
