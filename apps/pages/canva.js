@@ -58,18 +58,26 @@
   STEPS.push({
     id: "bg",
     kind: "bg",
-    selector: "#canvaBgGrid",
-    tip: "Pick a background that matches the vibe of your gift - tap any swatch!"
+    selector: ".canva-swatch[data-bg='#0a0a0f']",
+    tip: "Tap the black swatch above to set your gift's background!"
   });
-  /* Forced sequence of character additions via the Mac-style file picker */
-  CHARACTER_ASSETS.forEach(function (c) {
-    STEPS.push({
-      id: "character-" + c.id,
-      kind: "character",
-      assetId: c.id,
-      selector: "[data-canva-act='addimage']",
-      tip: "Open the file picker and add " + c.name + "'s photo to your gift."
-    });
+  /* Two generic Add Image steps for steps 10 and 11 (id "image-1", "image-2").
+   * Replaces the four forced character-pfp steps entirely. The user clicks the
+   * Add Image button themselves (matching the rest of the tutorial — one step,
+   * one explicit user action); the file picker opens in free-mode so any of
+   * the available photos (sofia, hanaria, lells, stray) can be added. image-1
+   * needs ≥1 image on canvas; image-2 needs ≥2 (cumulative). */
+  STEPS.push({
+    id: "image-1",
+    kind: "image",
+    selector: "[data-canva-act='addimage']",
+    tip: "Click 🖼 Add Image and pick a photo to drop onto your gift!"
+  });
+  STEPS.push({
+    id: "image-2",
+    kind: "image",
+    selector: "[data-canva-act='addimage']",
+    tip: "Add one more photo to your gift — pick any friend you like!"
   });
   DRAGGABLE_ASSETS.forEach(function (a, i) {
     STEPS.push({
@@ -332,15 +340,14 @@
     zCounter = 10;
     setupInteractions(contentEl);
 
-    /* Apply confetti wallpaper background as the demo default. The wallpaper
-     * stays until the user picks a swatch in the new 'bg' tutorial step
-     * (first step), at which point the swatch handler removes it and flips
-     * state.bgChosen to true so the bg step is validated and advances. */
+    /* Start the canvas truly empty. Step 1/16 is the bg pick — we show the
+     * dark base color (#0a0a0f) only so the empty state hint reads on screen;
+     * NO wallpaper, NO placeholder image 001. The bg step requires the user
+     * to tap the black swatch before advancing (state.bgChosen flips true
+     * in the swatch handler). */
     var pageEl = contentEl.querySelector("#canvaPage");
     if (pageEl) {
-      pageEl.style.backgroundImage = "url(static/canva-001.jpg)";
-      pageEl.style.backgroundSize = "cover";
-      pageEl.style.backgroundPosition = "center";
+      pageEl.style.backgroundImage = "none";
       pageEl.style.backgroundColor = "#0a0a0f";
       /* state.bgChosen stays false here so the bg step actually requires an
        * explicit swatch tap to advance. */
