@@ -342,7 +342,12 @@ window.AppDiscord = (function () {
     function renderServers() {
       var sofiaUnread = (state.unreadChannels && state.unreadChannels.sofia) || 0;
       var sofiaActive = state.activeServer === "home" && state.activeChannel === "sofia";
-      var showSofia = sofiaUnread > 0 || sofiaActive || (window.AppDiscordPanic && window.AppDiscordPanic.started);
+      /* Sofia's icon stays in the server rail as soon as ensureSofiaDM() adds her
+         to the DM list. The unread "ping" badge is the only thing gated on the
+         pending-new-message count, so the icon no longer disappears the moment
+         the user reads her messages (which used to zero sofiaUnread and hide
+         the rail entry even though the DM still exists). */
+      var showSofia = discordHome.channels[0].items.some(function (x) { return x.id === "sofia"; });
       var tu = totalUnread();
       serversEl.innerHTML =
         '<div class="server-icon home ' + (state.activeServer === "home" && !sofiaActive ? "active" : "") + '" data-server="home" title="Direct Messages">' +

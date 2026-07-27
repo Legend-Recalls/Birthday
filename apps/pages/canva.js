@@ -59,6 +59,12 @@
     tip: "Double-click the title to edit it - put anything you want!"
   });
   STEPS.push({
+    id: "ai",
+    kind: "ai",
+    selector: "[data-canva-act='ai']",
+    tip: "Tap ✨ Canva AI to auto-polish your gift - it'll handle the rest!"
+  });
+  STEPS.push({
     id: "save",
     kind: "save",
     selector: "[data-canva-act='save']",
@@ -229,9 +235,13 @@
       '        <h4>Selected</h4>',
       '        <div id="canvaSelectedInfo" class="canva-selinfo"></div>',
       '        <span class="canva-pill" data-canva-act="delete">🗑 Delete</span>',
-      '      </div>',
+      '</div>',
       '      <div class="canva-section">',
-      '        <h4>Finish</h4>',
+        '<h4>Polish</h4>',
+        '<span class="canva-pill primary" data-canva-act="ai">✨ Canva AI</span>',
+      '</div>',
+      '      <div class="canva-section">',
+        '<h4>Finish</h4>',
       '        <span class="canva-pill primary" data-canva-act="save">💾 Save &amp; Finish</span>',
       '      </div>',
       '    </div>',
@@ -257,7 +267,7 @@
   /* ---------------- Main render ---------------- */
   function render(contentEl, url, title) {
     contentEl.innerHTML = canvaStyle() + bodyHTML();
-    state = { bg: "#0a0a0f", bgChosen: false, elements: [], step: 0, completed: false, placed: [] };
+    state = { bg: "#0a0a0f", bgChosen: false, elements: [], step: 0, completed: false, placed: [], aiDone: false, aiBusy: false };
     zCounter = 10;
     setupInteractions(contentEl);
 
@@ -450,15 +460,89 @@
     if (!step) return;
     if (step.kind === "place") {
       if (!state.completed && state.step < STEPS.length - 1 && validateStep(step.id)) {
-        /* Last-place index = STEPS.length - 3 (e.g. 6 when total=9) -> next step is 'title'. */
+        /* Last-place index = STEPS.length - 3 (e.g. 6 when total=9) -> next step is 'title'.
+           (Removed the silent auto-prefill that injected "Happy Birthday Stray! 🎂"
+           into the title slot. Now the user lands on the title step with no text
+           element and must opt in via the toolbar "+ Add Text" button or by
+           double-clicking into the canvas — no preset title is forced.) */
         var wasLastPlace = (state.step === STEPS.length - 3);
         advanceStep(root);
-        if (wasLastPlace && !state.completed && !state.elements.some(function (e) { return e.type === "text"; })) {
-          addTextElement(root, "Happy Birthday Stray! 🎂");
-        }
       }
     }
     /* renderTray is now called inside showStep(), so no need here. */
+  }
+
+  /* ---------------- ✨ Canva AI ---------------- */
+  /* The new tutorial step before "save" — runs a fake-AI progress overlay
+   * over the canva page, then reveals static/final.png as the AI-polished
+   * result and advances to the save step. The reveal layer is positioned
+   * under the user's elements so the existing layout stays interactive while
+   * the polished version is shown. */
+  function runCanvaAI(root, btn) {
+    if (state.aiBusy || state.aiDone) return;
+    state.aiBusy = true;
+    if (btn) { btn.classList.add("busy"); btn.style.pointerEvents = "none"; }
+
+    var pageEl = root.querySelector("#canvaPage");
+
+    var overlay = document.createElement("div");
+    overlay.style.cssText =
+      "position:absolute;inset:0;background:rgba(15,12,28,.86);display:flex;" +
+      "flex-direction:column;align-items:center;justify-content:center;gap:14px;" +
+      "z-index:9999;color:#fff;font-family:-apple-system,'Segoe UI',sans-serif;" +
+      "border-radius:6px;padding:24px;text-align:center;";
+    overlay.innerHTML = [
+      '<div style="font-size:18px;font-weight:700;letter-spacing:-.01em;">✨ Canva AI is polishing…</div>',
+      '<div style="width:240px;height:8px;background:rgba(255,255,255,.18);border-radius:99px;overflow:hidden;">',
+      '  <div id="canvaAiFill" style="height:100%;width:0;background:linear-gradient(90deg,#7d2ae8,#eb459e);transition:width .25s linear;"></div>',
+      '</div>',
+      '<div id="canvaAiStatus" style="font-size:13px;opacity:.85;min-height:18px;">Thinking…</div>',
+      '<div style="font-size:11px;opacity:.55;margin-top:6px;">✨ this doesn’t look good — Canva AI to the rescue!</div>'
+    ].join("");
+    pageEl.appendChild(overlay);
+
+    /* Reveal layer — static/final.png as the AI-polished final design. */
+    var reveal = document.createElement("div");
+    reveal.style.cssText =
+      "position:absolute;inset:8px;background:url('static/final.png') center/contain no-repeat #0a0a0f;" +
+      "opacity:0;transition:opacity 1s ease;pointer-events:none;border-radius:4px;" +
+      "box-shadow:0 18px 48px rgba(0,0,0,.45);";
+    pageEl.appendChild(reveal);
+
+    var fillEl   = overlay.querySelector("#canvaAiFill");
+    var statusEl = overlay.querySelector("#canvaAiStatus");
+    var thoughts = [
+      "Analyzing layout…",
+      "Rebalancing composition…",
+      "Polishing colors & typography…",
+      "Adding finishing touches…",
+      "Beautifying your gift…",
+      "✨ One last sparkle…"
+    ];
+    var pct = 0, i = 0, totalMs = 0;
+
+    function tick() {
+      totalMs += 110;
+      pct = Math.min(100, Math.round((totalMs / 2400) * 100));
+      fillEl.style.width = pct + "%";
+      if (i < thoughts.length && pct >= ((i + 1) * (100 / thoughts.length) | 0)) {
+        statusEl.textContent = thoughts[i++];
+      }
+      if (pct < 100) {
+        setTimeout(tick, 110);
+      } else {
+        statusEl.textContent = "✨ Done — revealing final design";
+        requestAnimationFrame(function () { reveal.style.opacity = "1"; });
+        setTimeout(function () {
+          overlay.remove();
+          state.aiBusy = false;
+          state.aiDone = true;
+          if (btn) { btn.classList.remove("busy"); btn.style.pointerEvents = ""; }
+          advanceStep(root);
+        }, 950);
+      }
+    }
+    setTimeout(tick, 120);
   }
 
 /* ---------------- Wiring ---------------- */
@@ -494,10 +578,25 @@
       openPicker(root);
     });
 
-    /* Save */
+    /* ✨ Canva AI polish (inserted before Save step) */
+    var aiBtn = root.querySelector('[data-canva-act="ai"]');
+    if (aiBtn) aiBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (state.aiBusy || state.aiDone) return;
+      runCanvaAI(root, aiBtn);
+    });
+
+    /* Save - gated on aiDone: if the user hits Save before the AI polish has
+     * run (whether because the polish UI was off-screen, the preview was stale,
+     * or any other skip path), route the click through the polish first so the
+     * AI step can never be silently bypassed. */
     var saveBtn = root.querySelector('[data-canva-act="save"]');
     if (saveBtn) saveBtn.addEventListener("click", function (e) {
       e.stopPropagation();
+      if (!state.aiDone) {
+        runCanvaAI(root, saveBtn);
+        return;
+      }
       complete(root);
     });
 
@@ -772,6 +871,7 @@
       return false;
     }
     if (id === "title") return state.elements.some(function (e) { return e.type === "text"; });
+    if (id === "ai")   return !!state.aiDone;
     if (id === "save")  return true;
     return false;
   }
@@ -818,6 +918,7 @@
     if (!s) return "";
     if (s.kind === "place") return "Add gold element";
     if (s.kind === "title") return "Edit the title";
+    if (s.kind === "ai")    return "Polish with Canva AI";
     if (s.kind === "save")  return "Save your gift";
     return "";
   }

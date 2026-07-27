@@ -48,6 +48,7 @@ window.AppChrome = (function () {
       '      <button class="shortcut" data-url="mock://local/mail" data-title="Mail"><span class="shortcut-icon" style="--c:#ea4335">M</span>Mail</button>',
       '      <button class="shortcut" data-url="mock://local/photos" data-title="Photos"><span class="shortcut-icon" style="--c:#fbbc05">P</span>Photos</button>',
       '      <button class="shortcut" data-url="mock://local/docs" data-title="Docs"><span class="shortcut-icon" style="--c:#34a853">D</span>Docs</button>',
+      '      <button class="shortcut" data-url="canva.com" data-title="Canva"><span class="shortcut-icon" style="--c:#7d2ae8">C</span>Canva</button>',
       '      <button class="shortcut" data-url="mock://local/settings" data-title="Settings"><span class="shortcut-icon" style="--c:#8ab4f8">S</span>Settings</button>',
       '    </div>',
       '    <p class="fineprint">This Chrome window is a local UI mock. It does not build, load, or request any website.</p>',
