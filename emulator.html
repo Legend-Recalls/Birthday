@@ -1003,7 +1003,10 @@
       font-size: 13px;
       flex: none;
       object-fit: cover;
+      overflow: hidden; /* clip <img class="av-img"> corners so the avatar stays perfectly circular in DM sidebar (.sm-av), message rows (.msg-av), user panel (.up-av), and channel header (.ch-avatar) */
     }
+
+    .av-img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
     .avatar.small {
       width: 28px;
