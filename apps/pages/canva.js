@@ -43,37 +43,25 @@
   /* These are the user-facing "characters" Stray adds via the Mac-style file
    * picker, one per tutorial step before the gold place steps begin. */
   var CHARACTER_ASSETS = [
-    { id: "sofia",   src: "static/sofia.webp",   name: "Sofia",   xPct: 22, yPct: 22, wPct: 18, hPct: 26, z: 11, kind: "character" },
-    { id: "hanaria", src: "static/hanaria.webp", name: "Hanaria", xPct: 60, yPct: 22, wPct: 18, hPct: 26, z: 12, kind: "character" },
-    { id: "lells",   src: "static/lells.webp",   name: "Lells",   xPct: 28, yPct: 60, wPct: 16, hPct: 24, z: 13, kind: "character" },
-    { id: "stray",   src: "static/stray.webp",   name: "Stray",   xPct: 56, yPct: 60, wPct: 16, hPct: 24, z: 14, kind: "character" }
+    { id: "canva-007", src: "static/canva-007.png", name: "Gold Decoration (007)", xPct: 45, yPct: 45, wPct: 15, hPct: 20, z: 11, kind: "character" },
+    { id: "canva-008", src: "static/canva-008.png", name: "Gold Star Cluster (008)", xPct: 52, yPct: 50, wPct: 15, hPct: 20, z: 12, kind: "character" }
   ];
   var CHARACTER_BY_ID = {};
   CHARACTER_ASSETS.forEach(function (c) { CHARACTER_BY_ID[c.id] = c; });
 
-  /* ---------------- Tutorial steps (generated from draggables) ---------------- */
-  /* 12 steps total: bg + 8 draggables + title + ai + save. Each step validates
-   * the current step's bucket via validateStep(), then advances to the next. */
+  /* ---------------- Tutorial steps ---------------- */
+  /* 11 steps total: 1 bg + 4 draggables + 2 character image steps (via file picker) + 1 draggable + title + ai + save. */
   var STEPS = [];
-  /* Two generic Add Image steps for steps 10 and 11 (id "image-1", "image-2").
-   * Cherry-picked onto master as an isolated change; bg step and other
-   * unrelated WIP from the feature branch are intentionally not landed here
-   * to keep the canonical deployment stable. The user clicks the Add Image
-   * button themselves (one step, one explicit user action); the file picker
-   * opens in free-mode so any of the available photos can be added. */
+  /* Step 1: Choose background */
   STEPS.push({
-    id: "image-1",
-    kind: "image",
-    selector: "[data-canva-act='addimage']",
-    tip: "Click 🖼 Add Image and pick a photo to drop onto your gift!"
+    id: "bg",
+    kind: "bg",
+    selector: "#canvaBgGrid",
+    tip: "Click a background swatch to choose a background color for your gift!"
   });
-  STEPS.push({
-    id: "image-2",
-    kind: "image",
-    selector: "[data-canva-act='addimage']",
-    tip: "Add one more photo to your gift — pick any friend you like!"
-  });
-  DRAGGABLE_ASSETS.forEach(function (a, i) {
+
+  /* Steps 2-5: First 4 gold elements */
+  DRAGGABLE_ASSETS.slice(0, 4).forEach(function (a, i) {
     STEPS.push({
       id: "place-" + a.id,
       kind: "place",
@@ -82,6 +70,33 @@
       tip: "Drag the " + escapeHTML(a.name) + " onto your gift card!"
     });
   });
+
+  /* Steps 6 & 7: Add character photos via file picker */
+  STEPS.push({
+    id: "image-1",
+    kind: "image",
+    selector: "[data-canva-act='addimage']",
+    tip: "Click 🖼 Add Image to open the file picker and choose a character photo for your gift!"
+  });
+  STEPS.push({
+    id: "image-2",
+    kind: "image",
+    selector: "[data-canva-act='addimage']",
+    tip: "Click 🖼 Add Image again to pick a second character photo from the file picker!"
+  });
+
+  /* Step 8: Next gold element */
+  DRAGGABLE_ASSETS.slice(4, 5).forEach(function (a, i) {
+    STEPS.push({
+      id: "place-" + a.id,
+      kind: "place",
+      assetIdx: i + 4,
+      selector: ".canva-tray-item",
+      tip: "Drag the " + escapeHTML(a.name) + " onto your gift card!"
+    });
+  });
+
+  /* Steps 11-13: Title, AI polish, Save */
   STEPS.push({
     id: "title",
     kind: "title",
@@ -259,8 +274,8 @@
       '    <button class="canva-share" data-canva-act="publish">Share</button>',
       '  </div>',
       '  <div class="canva-stepbar" id="canvaStepbar">',
-      '    <span class="step-num" id="canvaStepNum">1 / 9</span>',
-      '    <span class="step-tip" id="canvaStepTip">Drag the first gold element onto your gift!</span>',
+      '    <span class="step-num" id="canvaStepNum">1 / 11</span>',
+      '    <span class="step-tip" id="canvaStepTip">Click a background swatch to choose a background color for your gift!</span>',
       '  </div>',
       '  <div class="canva-main">',
       '        <div class="canva-sidebar">',
@@ -903,7 +918,7 @@
       '  </div>',
       '  <div class="mac-toolbar">',
       '    <span class="mac-nav">◀ ▶</span>',
-      '    <div class="mac-toolbar-title">Pictures › Friends</div>',
+      '    <div class="mac-toolbar-title">Pictures › Elements</div>',
       '    <span class="mac-views">▦ ▤</span>',
       '  </div>',
       '  <div class="mac-body">',
@@ -913,7 +928,7 @@
       '      <div class="mac-sb-item">☁ iCloud</div>',
       '      <div class="mac-sb-item">🕐 Recent</div>',
       '      <div class="mac-sb-section">Tags</div>',
-      '      <div class="mac-sb-item mac-active">⭐ Friends</div>',
+      '      <div class="mac-sb-item mac-active">⭐ Assets</div>',
       '    </div>',
       '    <div class="mac-grid">'
     ];
@@ -950,7 +965,7 @@
       if (!asset) return;
       mask.remove();
       addImageElement(root, asset);
-      if (currentStep && currentStep.kind === "character") {
+      if (currentStep && (currentStep.kind === "character" || currentStep.kind === "image")) {
         advanceStep(root);
       }
     }
@@ -1015,7 +1030,9 @@
       }
       return false;
     }
-    if (id === "bg")    return !!state.bgChosen;
+    if (id === "bg") return !!state.bgChosen;
+    if (id === "image-1") return state.elements.filter(function (e) { return e.type === "image"; }).length >= 1;
+    if (id === "image-2") return state.elements.filter(function (e) { return e.type === "image"; }).length >= 2;
     /* "character-sofia" etc. — require that specific character to be added. */
     if (id.indexOf("character-") === 0) {
       var wantId = id.slice("character-".length);
@@ -1065,19 +1082,7 @@
 
     mask._placeFn = place;
 
-    /* Auto-trigger the polish on the AI step after a short beat so the spotlight
-     * has a chance to land. The user lands on this step, sees the spotlight and
-     * tip for ~1 s, then the polish overlay fires automatically. This makes the
-     * AI step impossible to silently bypass even if the overlay was previously
-     * missed / off-screen / on a stale page. */
-    if (step.id === "ai" && !state.aiDone && !state.aiBusy) {
-      setTimeout(function () {
-        if (STEPS[state.step].id !== "ai") return;
-        if (state.aiBusy || state.aiDone) return;
-        var aiBtn = root.querySelector('[data-canva-act="ai"]');
-        if (aiBtn) runCanvaAI(root, aiBtn);
-      }, 1000);
-    }
+
 
     /* Auto-open the Mac-style picker on every character step. Each step
      * matches exactly one character id; the picker disables the other tiles
@@ -1097,6 +1102,8 @@
   function stepTitle() {
     var s = STEPS[state.step];
     if (!s) return "";
+    if (s.kind === "bg")    return "Choose background";
+    if (s.kind === "image") return "Add character photo";
     if (s.kind === "place") return "Add gold element";
     if (s.kind === "title") return "Edit the title";
     if (s.kind === "ai")    return "Polish with Canva AI";

@@ -38,7 +38,7 @@ window.AppDiscord = (function () {
 
   var discordServers = [
     {
-      id: "s1", name: "Taskforce", color: "#5865f2",
+      id: "s1", name: "Taskforce", color: "#5865f2", icon: "static/server.webp",
       channels: [
         { category: "Lounge",    items: [ { id: "general", name: "general", type: "text", topic: "General chat — UI only" } ] },
         { category: "Important", items: [ { id: "rule",    name: "rule",    type: "text", topic: "Important rule channel — UI only" } ] }
@@ -147,18 +147,22 @@ window.AppDiscord = (function () {
   }
 
   function messageHTML(m, showHeader) {
+    var imgHtml = m.image ? '<div class="msg-image"><img src="' + m.image + '" alt="gift" /></div>' : '';
     if (showHeader === false) {
-      var bodyInner = escapeHTML(m.text);
-      if (m.image) bodyInner += '<div class="msg-image"><img src="' + m.image + '" alt="gift" /></div>';
-      return '<div class="message msg-cont"><div class="msg-body"><div class="text">' + bodyInner + "</div></div></div>";
+      return (
+        '<div class="message msg-cont">' +
+          '<div class="msg-body">' +
+            '<div class="text">' + escapeHTML(m.text) + '</div>' +
+            imgHtml +
+          '</div>' +
+        '</div>'
+      );
     }
     var av = m.avImg
       ? '<img src="' + m.avImg + '" class="av-img" alt="">'
       : escapeHTML(m.avEmoji || initials(m.author));
     var st = m.avImg ? "" : "background:" + (m.color || "#5865f2");
     var badge = m.badge ? '<span class="author-badge">' + escapeHTML(m.badge) + "</span>" : "";
-    var textPart = '<div class="text">' + escapeHTML(m.text) + "</div>";
-    if (m.image) textPart += '<div class="msg-image"><img src="' + m.image + '" alt="gift" /></div>';
     return (
       '<div class="message">' +
         '<div class="avatar msg-av" style="' + st + '">' + av + "</div>" +
@@ -167,7 +171,8 @@ window.AppDiscord = (function () {
             '<span class="author">' + escapeHTML(m.author) + "</span>" + badge +
             '<span class="time">' + escapeHTML(m.time || "") + "</span>" +
           "</div>" +
-          textPart +
+          '<div class="text">' + escapeHTML(m.text) + "</div>" +
+          imgHtml +
         "</div>" +
       "</div>"
     );
@@ -363,9 +368,31 @@ window.AppDiscord = (function () {
           : "") +
         '<div class="server-separator"></div>' +
         discordServers.map(function (s) {
+          var unreadCount = 0;
+          s.channels.forEach(function (cat) {
+            cat.items.forEach(function (ch) {
+              var isCurrentChannel = (state.activeServer === s.id && state.activeChannel === ch.id);
+              if (!isCurrentChannel) {
+                if (ch.id === "rule" && state.unreadRule) {
+                  unreadCount += 1;
+                } else if (state.unreadChannels[ch.id]) {
+                  unreadCount += state.unreadChannels[ch.id];
+                }
+              }
+            });
+          });
+
+          var badgeHtml = unreadCount > 0
+            ? '<div class="server-ping-badge" style="position:absolute;bottom:-3px;right:-5px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#f23f42;color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;border:3px solid #1e1f22;line-height:1;z-index:10;">' + unreadCount + '</div>'
+            : '';
+
+          var inner = s.icon
+            ? '<img src="' + s.icon + '" alt="' + escapeHTML(s.name) + '" style="width:100%;height:100%;border-radius:inherit;object-fit:cover" />'
+            : initials(s.name);
+          var bgStyle = s.icon ? "background:transparent" : "background:" + (s.color || "#5865f2");
           return '<div class="server-icon ' + (state.activeServer === s.id ? "active" : "") +
-                 '" data-server="' + s.id + '" title="' + escapeHTML(s.name) + '" style="background:' + s.color + '">' +
-                 initials(s.name) + "</div>";
+                 '" data-server="' + s.id + '" title="' + escapeHTML(s.name) + '" style="' + bgStyle + '">' +
+                 inner + badgeHtml + "</div>";
         }).join("") +
         '<div class="server-separator"></div>' +
         '<div class="server-icon add" data-server="add" title="Add a Server">+</div>';

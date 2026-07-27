@@ -218,6 +218,11 @@
     if (app === "chrome") {
       cancelHint();
       openApp("chrome");
+      /* Auto-minimize Discord so Chrome is unobstructed */
+      var discordWin = document.getElementById("discord-window");
+      if (discordWin && !discordWin.classList.contains("minimized")) {
+        discordWin.classList.add("minimized");
+      }
     } else if (app === "discord") {
       openApp("discord");
       /* Auto-jump to #rule only on first open (the birthday rule). After that, resume last state. */
@@ -260,7 +265,6 @@
   function showBirthdayNotification() {
     var notification = document.getElementById("birthdayNotification");
     if (!notification) return;
-    if (!birthdayRuleUnread) return;
     notification.classList.add("show");
     var badge = document.getElementById("discordDockBadge");
     if (badge) badge.classList.remove("hidden");
@@ -374,9 +378,64 @@
     var existing = desktop.querySelector(".desktop-file");
     if (existing) existing.remove();
 
-    /* Close/minimize Chrome so the desktop file is visible */
+    /* Show a Chrome-style download bar at the bottom of the browser
+     * so the user sees the "downloaded" state before we minimize. */
     var chromeWin = document.getElementById("chrome-window");
-    if (chromeWin) chromeWin.classList.add("minimized");
+    var chromeContent = chromeWin ? chromeWin.querySelector("#chromeContent") : null;
+
+    if (chromeContent) {
+      /* Remove any old download bar */
+      var oldBar = chromeContent.parentNode.querySelector(".chrome-download-bar");
+      if (oldBar) oldBar.remove();
+
+      var bar = document.createElement("div");
+      bar.className = "chrome-download-bar";
+      bar.style.cssText =
+        "display:flex;align-items:center;gap:10px;padding:6px 14px;" +
+        "background:linear-gradient(180deg,#f0f0f3,#e2e2e6);border-top:1px solid #c8c8cd;" +
+        "font-family:-apple-system,'Segoe UI',sans-serif;font-size:12px;color:#333;" +
+        "min-height:40px;flex-shrink:0;animation:slideUpBar .3s ease forwards;";
+
+      var thumbStyle = "width:28px;height:28px;border-radius:4px;overflow:hidden;background:#fafafa;" +
+        "display:grid;place-items:center;box-shadow:0 1px 3px rgba(0,0,0,.1);flex-shrink:0;";
+      var thumbContent = giftImage
+        ? '<img src="' + giftImage + '" alt="gift" style="width:100%;height:100%;object-fit:cover" />'
+        : '<span style="font-size:14px">🎁</span>';
+
+      bar.innerHTML =
+        '<div style="' + thumbStyle + '">' + thumbContent + '</div>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Stray\'s Gift.png</div>' +
+          '<div style="font-size:10px;color:#888;margin-top:1px;">Download complete</div>' +
+        '</div>' +
+        '<div style="font-size:10px;color:#15803d;font-weight:700;background:#dcfce7;padding:3px 8px;border-radius:6px;">✓ Saved</div>';
+
+      /* Inject the animation keyframe if not already present */
+      if (!document.getElementById("downloadBarAnim")) {
+        var animStyle = document.createElement("style");
+        animStyle.id = "downloadBarAnim";
+        animStyle.textContent = "@keyframes slideUpBar{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}";
+        document.head.appendChild(animStyle);
+      }
+
+      chromeContent.parentNode.appendChild(bar);
+    }
+
+    /* After 3.5 seconds, minimize Chrome and spawn the file on the desktop */
+    setTimeout(function () {
+      if (chromeWin) chromeWin.classList.add("minimized");
+      /* Remove the download bar so it's clean on re-open */
+      var barEl = chromeWin ? chromeWin.querySelector(".chrome-download-bar") : null;
+      if (barEl) barEl.remove();
+
+      actuallySpawnFile(giftImage);
+    }, 3500);
+  }
+
+  function actuallySpawnFile(giftImage) {
+    /* Remove any existing gift file first */
+    var existing = desktop.querySelector("#giftFile");
+    if (existing) existing.remove();
 
     var file = document.createElement("div");
     file.className = "desktop-file";
@@ -391,13 +450,16 @@
       '<div class="desktop-file-thumb">' + thumbHTML + '</div>' +
       '<div class="desktop-file-label">Stray\'s Gift.png</div>';
 
-    /* Position: center-right of desktop, above dock */
+    /* Position: Top-right of Mac desktop, sitting on desktop surface */
     var dRect = desktop.getBoundingClientRect();
-    file.style.left = (dRect.width / 2 + 60) + "px";
-    file.style.top  = (dRect.height / 2 - 60) + "px";
+    file.style.position = "absolute";
+    file.style.right = "32px";
+    file.style.top   = "40px";
+    file.style.left  = "auto";
+    file.style.zIndex = "5";
     desktop.appendChild(file);
 
-    /* Make it draggable */
+    /* Make it draggable with unlimited drag support */
     var dragging = false;
     var offsetX, offsetY;
     var discordIcon = document.querySelector('.dock-icon[data-app="discord"]');
@@ -407,25 +469,35 @@
       e.preventDefault();
       dragging = true;
       file.classList.add("dragging");
+      file.style.zIndex = "99999"; /* Float above all windows while dragging */
+
       var fRect = file.getBoundingClientRect();
+      dRect = desktop.getBoundingClientRect();
       offsetX = e.clientX - fRect.left;
       offsetY = e.clientY - fRect.top;
+
       try { file.setPointerCapture(e.pointerId); } catch (_) {}
+
+      /* Attach listeners for THIS drag session */
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+      document.addEventListener("pointercancel", onUp);
     });
 
     function onMove(e) {
       if (!dragging) return;
       var x = e.clientX - dRect.left - offsetX;
       var y = e.clientY - dRect.top - offsetY;
-      file.style.left = x + "px";
-      file.style.top  = y + "px";
+      file.style.left  = x + "px";
+      file.style.top   = y + "px";
+      file.style.right = "auto";
 
       /* Highlight Discord dock icon when hovering */
       if (discordIcon) {
         var iRect = discordIcon.getBoundingClientRect();
-        var over = e.clientX >= iRect.left && e.clientX <= iRect.right &&
-                   e.clientY >= iRect.top  && e.clientY <= iRect.bottom;
-        discordIcon.classList.toggle("drop-target", over);
+        var overIcon = e.clientX >= iRect.left && e.clientX <= iRect.right &&
+                       e.clientY >= iRect.top  && e.clientY <= iRect.bottom;
+        discordIcon.classList.toggle("drop-target", overIcon);
       }
     }
 
@@ -433,33 +505,35 @@
       if (!dragging) return;
       dragging = false;
       file.classList.remove("dragging");
+      file.style.zIndex = "5"; /* Return to desktop surface level */
       cleanup();
 
-      /* Check if dropped on Discord dock icon */
-      if (discordIcon) {
-        discordIcon.classList.remove("drop-target");
-        var iRect = discordIcon.getBoundingClientRect();
-        var onDiscord = e.clientX >= iRect.left && e.clientX <= iRect.right &&
-                        e.clientY >= iRect.top  && e.clientY <= iRect.bottom;
-        if (onDiscord) {
-          file.remove();
-          sendGiftToSofia(giftImage);
-          return;
-        }
+      var discordWin = document.getElementById("discord-window");
+      var iRect = discordIcon ? discordIcon.getBoundingClientRect() : null;
+      var wRect = (discordWin && !discordWin.classList.contains("minimized")) ? discordWin.getBoundingClientRect() : null;
+
+      var onIcon = iRect && (e.clientX >= iRect.left && e.clientX <= iRect.right && e.clientY >= iRect.top && e.clientY <= iRect.bottom);
+      var onWin  = wRect && (e.clientX >= wRect.left && e.clientX <= wRect.right && e.clientY >= wRect.top && e.clientY <= wRect.bottom);
+
+      if (discordIcon) discordIcon.classList.remove("drop-target");
+
+      if (onIcon || onWin) {
+        file.remove();
+        sendGiftToSofia(giftImage);
+        return;
       }
-      /* If not dropped on Discord, snap back and show hint */
-      showToast("Drag the gift file onto the Discord icon in the dock!");
+
+      /* Stays on desktop right where released, ready to be dragged again */
+      showToast("Drag the gift file onto Discord or the Discord dock icon!");
     }
 
     function cleanup() {
       document.removeEventListener("pointermove", onMove);
       document.removeEventListener("pointerup", onUp);
+      document.removeEventListener("pointercancel", onUp);
     }
 
-    document.addEventListener("pointermove", onMove);
-    document.addEventListener("pointerup", onUp);
-
-    /* Also allow double-click as shortcut (for accessibility) */
+    /* Double-click shortcut */
     file.addEventListener("dblclick", function (e) {
       e.preventDefault();
       cleanup();
@@ -467,11 +541,11 @@
       sendGiftToSofia(giftImage);
     });
 
-    /* Hint after 10s if file still sitting there */
+    /* Hint after 10s if file still sitting on desktop */
     scheduleHint(10000, {
       title: "Send your gift! 📨",
       subtitle: "Drag to Discord",
-      text: "Drag the gift file from the desktop onto the Discord icon in the dock to send it to Sofia!",
+      text: "Drag the gift file from the desktop onto Discord to send it to Sofia!",
       icon: "👇"
     });
   }
@@ -484,27 +558,31 @@
     if (!ad || !ad.data) return;
     var time = "Today at " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
+    var giftImgSrc = giftImage || "static/final.png";
+
     /* 1. Push Stray's message with the image into Sofia's DM */
     var sofiaData = ad.data.discordMessageData.sofia;
     if (!sofiaData) sofiaData = ad.data.discordMessageData.sofia = [];
     sofiaData.push({
       author: "Stray", color: "#5865f2", avImg: "static/stray.webp",
-      time: time, text: "look what i made 🎁", image: giftImage
+      time: time, text: "look what i made 🎁", image: giftImgSrc
     });
 
-    /* 2. Open Discord to Sofia DM */
+    /* 2. Open Discord to Sofia DM & refresh message view */
     openApp("discord");
     var dw1 = document.getElementById("discord-window");
     if (dw1 && dw1.appDiscord) {
       dw1.appDiscord.openDM("sofia");
+      dw1.appDiscord.refresh("sofia");
     }
 
     /* 3. After 3s: Sofia replies with thanks */
     setTimeout(function () {
+      var thanksMsg = "NO WAYYYY 😭😭😭 THIS IS SO CUTE STRAY IM ACTUALLY CRYING";
       sofiaData.push({
         author: "✨ Sofia ✨", color: "#9b59b6", avImg: "static/sofia.webp",
         time: "Today at " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
-        text: "NO WAYYYY 😭😭😭 THIS IS SO CUTE STRAY IM ACTUALLY CRYING"
+        text: thanksMsg
       });
       var dw2 = document.getElementById("discord-window");
       if (dw2 && dw2.appDiscord) {
@@ -514,15 +592,26 @@
       }
       showToast("Sofia loved it!");
 
+      /* Show DM notification popup */
+      var dmEl = document.getElementById("dmNotification");
+      if (dmEl) {
+        var dmSub = dmEl.querySelector(".notification-subtitle");
+        var dmText = dmEl.querySelector(".notification-text");
+        if (dmSub) dmSub.textContent = "✨ Sofia ✨";
+        if (dmText) dmText.textContent = thanksMsg;
+      }
+      showDMNotification();
+
       /* 4. After 4s more: Sofia posts in Taskforce #rule with the image */
       setTimeout(function () {
+        var postText = "HAPPY BIRTHDAY STRAY!! 🎂🎉 look what stray made for himself!! 💖💖";
         var ruleData = ad.data.discordMessageData.rule;
         if (!ruleData) ruleData = ad.data.discordMessageData.rule = [];
         ruleData.push({
           author: "✨ Sofia ✨", color: "#9b59b6", avImg: "static/sofia.webp",
           time: "Today at " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
-          text: "HAPPY BIRTHDAY STRAY!! 🎂🎉 look what stray made for himself!! 💖💖",
-          image: giftImage
+          text: postText,
+          image: giftImgSrc
         });
         var dw3 = document.getElementById("discord-window");
         if (dw3 && dw3.appDiscord) {
@@ -538,8 +627,9 @@
           var bSub = bdayEl.querySelector(".notification-subtitle");
           var bText = bdayEl.querySelector(".notification-text");
           if (bSub) bSub.textContent = "Taskforce • #rule";
-          if (bText) bText.textContent = "Sofia just posted your birthday gift in #rule!";
+          if (bText) bText.textContent = "✨ Sofia ✨: " + postText;
         }
+        birthdayRuleUnread = true;
         showBirthdayNotification();
 
         scheduleHint(4000, {
@@ -548,8 +638,97 @@
           text: "Sofia just posted your gift in Taskforce #rule! Click Discord to see it.",
           icon: "✨"
         });
+
+        /* Wait 10 seconds after Sofia's post in #rule, then trigger the end card and file download */
+        setTimeout(function () {
+          showEndScreen(giftImgSrc);
+        }, 10000);
       }, 4000);
     }, 3000);
+  }
+
+  function showEndScreen(giftImgSrc) {
+    /* 1. Triggers real download of final.png */
+    triggerRealDownload(giftImgSrc);
+
+    /* 2. Create the gorgeous glassmorphism overlay screen */
+    var screenEl = document.getElementById("screen");
+    if (!screenEl) return;
+
+    /* Remove any existing end screen first */
+    var oldEnd = document.getElementById("endScreen");
+    if (oldEnd) oldEnd.remove();
+
+    var overlay = document.createElement("div");
+    overlay.id = "endScreen";
+    overlay.style.cssText =
+      "position:absolute;inset:0;background:rgba(10,10,15,0.45);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);" +
+      "z-index:999999;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 1s ease;" +
+      "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;";
+
+    overlay.innerHTML =
+      '<div style="background:linear-gradient(135deg,rgba(30,30,45,0.9),rgba(18,18,26,0.95));' +
+        'border:1px solid rgba(255,255,255,0.15);border-radius:24px;padding:40px;width:min(520px,90%);' +
+        'box-shadow:0 30px 60px rgba(0,0,0,0.6),inset 0 1px 1px rgba(255,255,255,0.1);text-align:center;color:#fff;' +
+        'transform:scale(0.9);transition:transform 0.8s cubic-bezier(0.34,1.56,0.64,1);" id="endCard">' +
+        '<div style="font-size:64px;margin-bottom:20px;">🎂</div>' +
+        '<h1 style="font-size:28px;font-weight:800;margin:0 0 10px 0;' +
+          'background:linear-gradient(90deg,#ff7b00,#ffae00,#ff7b00);background-size:200% auto;' +
+          '-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shine 3s linear infinite;">' +
+          '🎉 HAPPY BIRTHDAY STRAY! 🎉' +
+        '</h1>' +
+        '<p style="font-size:14px;color:rgba(255,255,255,0.75);margin:0 0 24px 0;line-height:1.5;">' +
+          'Sofia posted your gift in Taskforce #rule! All your friends loved it.' +
+        '</p>' +
+        '<div style="width:200px;height:160px;margin:0 auto 24px auto;border-radius:12px;overflow:hidden;' +
+          'box-shadow:0 8px 24px rgba(0,0,0,0.4);border:2px solid rgba(255,255,255,0.1);background:#111;">' +
+          '<img src="' + giftImgSrc + '" alt="Your Birthday Gift" style="width:100%;height:100%;object-fit:cover;" />' +
+        '</div>' +
+        '<div style="display:flex;gap:12px;justify-content:center;">' +
+          '<button id="endDownloadBtn" style="background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;' +
+            'color:white;padding:12px 24px;font-size:14px;font-weight:600;border-radius:12px;cursor:pointer;' +
+            'transition:all 0.2s ease;box-shadow:0 4px 12px rgba(37,99,235,0.3);">📥 Download Gift</button>' +
+          '<button id="endRestartBtn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);' +
+            'color:white;padding:12px 24px;font-size:14px;font-weight:600;border-radius:12px;cursor:pointer;' +
+            'transition:all 0.2s ease;">🔄 Restart</button>' +
+        '</div>' +
+      '</div>';
+
+    screenEl.appendChild(overlay);
+
+    /* Inject keyframes if not present */
+    if (!document.getElementById("endScreenStyles")) {
+      var style = document.createElement("style");
+      style.id = "endScreenStyles";
+      style.textContent =
+        "@keyframes shine{0%{background-position:0% center}100%{background-position:200% center}}";
+      document.head.appendChild(style);
+    }
+
+    /* Animate in */
+    setTimeout(function () {
+      overlay.style.opacity = "1";
+      var card = document.getElementById("endCard");
+      if (card) card.style.transform = "scale(1)";
+    }, 50);
+
+    /* Button listeners */
+    document.getElementById("endDownloadBtn").addEventListener("click", function () {
+      triggerRealDownload(giftImgSrc);
+    });
+
+    document.getElementById("endRestartBtn").addEventListener("click", function () {
+      window.location.reload();
+    });
+  }
+
+  function triggerRealDownload(imgSrc) {
+    var link = document.createElement("a");
+    link.download = "Stray_Gift.png";
+    link.href = imgSrc || "static/final.png";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   /* ---------------- Walkthrough orchestrator ----------------

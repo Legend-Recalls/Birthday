@@ -216,7 +216,7 @@ window.AppChrome = (function () {
       reloadBtn.classList.remove("spin");
       void reloadBtn.offsetWidth;
       reloadBtn.classList.add("spin");
-      showToast("Reload is visual only — no website is loaded.");
+      renderView();
     });
 
     urlEl.addEventListener("keydown", function (e) {
