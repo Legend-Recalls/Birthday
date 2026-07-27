@@ -35,6 +35,41 @@
     #startBtn:hover { filter: brightness(1.06); }
     .hint { margin-top: 14px; font-size: 13px; color: rgba(255,255,255,.55); }
     #appFrame { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; display: none; background: #000; }
+
+    #loadingOverlay {
+      position: fixed; inset: 0; z-index: 100;
+      display: grid; place-items: center;
+      font-family: inherit; color: #fff;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(88,101,242,.35), transparent 30%),
+        radial-gradient(circle at 80% 30%, rgba(235,69,158,.25), transparent 28%),
+        radial-gradient(circle at 50% 80%, rgba(35,165,90,.18), transparent 30%),
+        #0a0a0c;
+      opacity: 0; pointer-events: none; transition: opacity .4s ease;
+    }
+    #loadingOverlay.active { opacity: 1; pointer-events: auto; }
+    #loadingOverlay.done { opacity: 0; pointer-events: none; }
+
+    .loader-card {
+      width: min(480px, calc(100vw - 32px));
+      padding: 42px 32px; border-radius: 28px; text-align: center;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 30px 80px rgba(0,0,0,.45);
+      -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    }
+    .loader-card h2 { font-size: 28px; margin: 0 0 8px; letter-spacing: -.03em; }
+    .loader-card .status { color: rgba(255,255,255,.6); font-size: 14px; margin-bottom: 24px; min-height: 20px; }
+    .progress-track {
+      width: 100%; height: 8px; border-radius: 4px;
+      background: rgba(255,255,255,.12); overflow: hidden; margin-bottom: 14px;
+    }
+    .progress-bar {
+      height: 100%; width: 0%; border-radius: 4px;
+      background: linear-gradient(90deg, #5865f2, #eb459e);
+      transition: width .3s ease;
+    }
+    .progress-text { font-size: 13px; color: rgba(255,255,255,.55); }
   </style>
 </head>
 <body>
@@ -45,12 +80,97 @@
     <div class="hint">Clicking will start the surprise.</div>
   </main>
 
+  <div id="loadingOverlay">
+    <div class="loader-card">
+      <h2>Loading...</h2>
+      <div class="status" id="loadStatus">Preparing assets...</div>
+      <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+      <div class="progress-text" id="progressText">0 / 0</div>
+    </div>
+  </div>
+
   <iframe id="appFrame" title="Birthday walkthrough" allow="fullscreen"></iframe>
 
   <script>
     const card = document.getElementById("card");
     const frame = document.getElementById("appFrame");
+    const overlay = document.getElementById("loadingOverlay");
+    const progressBar = document.getElementById("progressBar");
+    const progressText = document.getElementById("progressText");
+    const loadStatus = document.getElementById("loadStatus");
     let launched = false;
+
+    const ASSETS = [
+      "static/canva-001.jpg",
+      "static/canva-002.png",
+      "static/canva-003.png",
+      "static/canva-004.webp",
+      "static/canva-005.webp",
+      "static/canva-006.webp",
+      "static/canva-007.png",
+      "static/canva-008.png",
+      "static/discord-icon.png",
+      "static/final.png",
+      "static/hanaria.webp",
+      "static/lells.webp",
+      "static/server.webp",
+      "static/sofia.webp",
+      "static/stray.webp",
+      "apps/common.js",
+      "apps/discord.js",
+      "apps/discord-panic.js",
+      "apps/sofia.js",
+      "apps/browser.js",
+      "apps/pages/canva.js",
+      "apps/browser-step.js",
+      "apps/chrome.js",
+      "apps/bootstrap.js"
+    ];
+
+    function loadImage(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+        img.src = src;
+      });
+    }
+
+    function prefetchScript(src) {
+      return fetch(src, { cache: "force-cache" }).then(() => {}).catch(() => {});
+    }
+
+    function updateProgress(loaded, total, label) {
+      const pct = Math.round((loaded / total) * 100);
+      progressBar.style.width = pct + "%";
+      progressText.textContent = loaded + " / " + total;
+      if (label) loadStatus.textContent = label;
+    }
+
+    async function preloadAll() {
+      const total = ASSETS.length;
+      let loaded = 0;
+      updateProgress(0, total, "Loading images...");
+
+      const imageExts = /\.(jpg|jpeg|png|gif|webp|svg|ico)$/i;
+      const images = ASSETS.filter(a => imageExts.test(a));
+      const scripts = ASSETS.filter(a => !imageExts.test(a));
+
+      for (const src of images) {
+        await loadImage(src);
+        loaded++;
+        updateProgress(loaded, total, "Loading images...");
+      }
+
+      updateProgress(loaded, total, "Loading scripts...");
+      for (const src of scripts) {
+        await prefetchScript(src);
+        loaded++;
+        updateProgress(loaded, total, "Loading scripts...");
+      }
+
+      updateProgress(total, total, "Ready!");
+    }
 
     async function enterFullscreen() {
       const el = document.documentElement;
@@ -63,8 +183,14 @@
     document.getElementById("startBtn").addEventListener("click", async () => {
       if (launched) return;
       launched = true;
-      await enterFullscreen();
       card.style.display = "none";
+      overlay.classList.add("active");
+
+      await preloadAll();
+
+      await new Promise(r => setTimeout(r, 400));
+      overlay.classList.add("done");
+      await enterFullscreen();
       frame.style.display = "block";
       frame.src = "emulator.html?start=1";
     });
