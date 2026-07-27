@@ -43,6 +43,24 @@
   /* 9 steps total: one per draggable asset + title + save. Each drop validates
    * the current step's bucket, then advances to the next bucket. */
   var STEPS = [];
+  /* Two generic Add Image steps for steps 10 and 11 (id "image-1", "image-2").
+   * Cherry-picked onto master as an isolated change; bg step and other
+   * unrelated WIP from the feature branch are intentionally not landed here
+   * to keep the canonical deployment stable. The user clicks the Add Image
+   * button themselves (one step, one explicit user action); the file picker
+   * opens in free-mode so any of the available photos can be added. */
+  STEPS.push({
+    id: "image-1",
+    kind: "image",
+    selector: "[data-canva-act='addimage']",
+    tip: "Click 🖼 Add Image and pick a photo to drop onto your gift!"
+  });
+  STEPS.push({
+    id: "image-2",
+    kind: "image",
+    selector: "[data-canva-act='addimage']",
+    tip: "Add one more photo to your gift — pick any friend you like!"
+  });
   DRAGGABLE_ASSETS.forEach(function (a, i) {
     STEPS.push({
       id: "place-" + a.id,
@@ -273,14 +291,6 @@
 
     /* Apply confetti wallpaper background BEFORE the first step so the
      * coach-mark spotlight can see everything inside the canva-page. */
-    var pageEl = contentEl.querySelector("#canvaPage");
-    if (pageEl) {
-      pageEl.style.backgroundImage = "url(static/canva-001.jpg)";
-      pageEl.style.backgroundSize = "cover";
-      pageEl.style.backgroundPosition = "center";
-      pageEl.style.backgroundColor = "#0a0a0f";
-      state.bgChosen = true;
-    }
 
     /* Populate the tray FIRST so the coach mark spotlight can find the
      * .canva-tray-item target on the very first frame. */
