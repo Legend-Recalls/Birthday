@@ -183,6 +183,7 @@
     document.getElementById("startBtn").addEventListener("click", async () => {
       if (launched) return;
       launched = true;
+      await enterFullscreen();
       card.style.display = "none";
       overlay.classList.add("active");
 
@@ -190,7 +191,6 @@
 
       await new Promise(r => setTimeout(r, 400));
       overlay.classList.add("done");
-      await enterFullscreen();
       frame.style.display = "block";
       frame.src = "emulator.html?start=1";
     });
